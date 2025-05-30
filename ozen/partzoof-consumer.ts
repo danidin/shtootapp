@@ -11,7 +11,7 @@ const kafka = new Kafka({
 const topic = 'shtootapp-events';
 
 export const startKafkaConsumer = async () => {
-  const consumer = kafka.consumer({ groupId: 'ozen-consumer-group' });
+  const consumer = kafka.consumer({ groupId: `ozen-consumer-group-${Math.random()}` });
 
   await consumer.connect();
   await consumer.subscribe({ topic, fromBeginning: true });

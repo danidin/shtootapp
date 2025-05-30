@@ -12,6 +12,11 @@ import { startKafkaProducer } from './partzoof-producer';
 const PORT = 4000;
 
 const startServer = async () => {
+  await Promise.all([
+    startKafkaConsumer(),
+    startKafkaProducer(),
+  ]);
+  
   const app = express();
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -27,12 +32,7 @@ const startServer = async () => {
     path: '/graphql',
   });
 
-  useServer({ schema, connectionInitWaitTimeout: 15000 }, wsServer);
-
-  await Promise.all([
-    startKafkaConsumer(),
-    startKafkaProducer(),
-  ]);
+  useServer({ schema }, wsServer);
 
   httpServer.listen(PORT, () => {
     console.log(`🦻 ozen GraphQL server ready at http://localhost:${PORT}/graphql`);

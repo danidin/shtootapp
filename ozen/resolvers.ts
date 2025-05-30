@@ -40,11 +40,7 @@ export const resolvers = {
   Subscription: {
     shtootAdded: {
       subscribe: async function* () {
-        for (const shtoot of shtoots) {
-          yield { shtootAdded: shtoot };
-        }
-
-        const queue: Shtoot[] = [];
+        const queue: Shtoot[] = [...shtoots];
         const handler = (shtoot: Shtoot) => queue.push(shtoot);
 
         eventBus.on(SHTOOT_ADDED, handler);
