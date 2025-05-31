@@ -2,8 +2,12 @@ import { Kafka } from 'kafkajs';
 import { Shtoot } from './entities';
 
 const kafka = new Kafka({
-  clientId: 'ozen-graphql-server',
-  brokers: ['kafka:9092']
+  clientId: 'ozen-producer',
+  brokers: ['kafka:9092'],
+  retry: {
+    initialRetryTime: 300,
+    retries: 50
+  }
 });
 
 const topic = 'shtootapp-events';
