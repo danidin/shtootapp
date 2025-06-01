@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script>
+      if (localStorage.getItem('jwt')) {
+        window.location = '/peh'
+      }
+    </script>
     <script src="https://accounts.google.com/gsi/client" async></script>
     <script>   
-      window.handleCredentialResponse = (response) => {
+      function handleCredentialResponse(response) {
         const responsePayload = decodeJwtResponse(response.credential);
     
         console.log("ID: " + responsePayload.sub);
@@ -14,7 +19,7 @@
         console.log("Email: " + responsePayload.email);
 
         localStorage.setItem('jwt', response.credential);
-        // window.location = localStorage.getItem('shtootapp-devmode') ? 'http://localhost:3000' : 'https://shtoot.net'
+        window.location = '/peh'
       }
     
       function decodeJwtResponse(token) {
@@ -30,16 +35,16 @@
     
   </head>
   <body>
-    <div id="g_id_onload"
+    <div
+      id="g_id_onload"
       data-client_id="569147176090-4t128vkfk1ki84qbf272ghjifbknvaas.apps.googleusercontent.com"
-      data-context="signin"
-      data-ux_mode="redirect"
       data-callback="handleCredentialResponse"
-      data-redirect_uri="https://shtoot.net"
+      data-ux_mode="popup"
       data-auto_prompt="false">
     </div>
 
-    <div class="g_id_signin"
+    <div
+      class="g_id_signin"
       data-type="standard"
       data-shape="pill"
       data-theme="outline"

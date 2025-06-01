@@ -2,9 +2,13 @@
 <html>
 <head>
   <script>
-    window.logout = () => {
+    if (!localStorage.getItem('jwt')) {
+      window.location = '/peh/login'
+    }
+
+    function logout() {
       localStorage.setItem('jwt', '');
-      window.location = 'login';
+      window.location = '/peh/login';
     }
   </script>
   <script type="module">
