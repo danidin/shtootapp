@@ -2,7 +2,11 @@
 <html>
   <head>
     <script>
-      window.location = 'peh/login';
+      if (!localStorage.getItem('jwt')) {
+        window.location = '/peh/login'
+      } else {
+        window.location = '/peh';
+      }
     </script>
   </head>
   <body></body>

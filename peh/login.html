@@ -14,7 +14,7 @@
         console.log("Email: " + responsePayload.email);
 
         localStorage.setItem('jwt', response.credential);
-        window.location = localStorage.getItem('shtootapp-devmode') ? 'http://localhost:3000' : 'https://shtootapp.net'
+        // window.location = localStorage.getItem('shtootapp-devmode') ? 'http://localhost:3000' : 'https://shtoot.net'
       }
     
       function decodeJwtResponse(token) {
@@ -35,7 +35,8 @@
       data-context="signin"
       data-ux_mode="redirect"
       data-callback="handleCredentialResponse"
-      data-auto_prompt="true">
+      data-redirect_uri="https://shtoot.net"
+      data-auto_prompt="false">
     </div>
 
     <div class="g_id_signin"
