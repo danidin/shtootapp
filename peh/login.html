@@ -14,7 +14,7 @@
         console.log("Email: " + responsePayload.email);
 
         localStorage.setItem('jwt', response.credential);
-        window.location = 'http://localhost:3000'
+        window.location = localStorage.getItem('shtootapp-devmode') ? 'http://localhost:3000' : 'https://shtootapp.net'
       }
     
       function decodeJwtResponse(token) {
