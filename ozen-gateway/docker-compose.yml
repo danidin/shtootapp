@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  ozen-gateway:
+    image: nginx:alpine
+    container_name: ozen-gateway
+    ports:
+      - "443:443"
+    volumes:
+      - ./ozen-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ozen-gateway/certs:/etc/nginx/certs:ro

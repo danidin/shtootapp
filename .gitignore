@@ -1,0 +1,3 @@
+**/node_modules
+terraform.tfvars
+ozen-gateway/certs
