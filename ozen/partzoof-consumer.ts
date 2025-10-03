@@ -5,7 +5,7 @@ import { Shtoot } from './entities';
 // Configure as needed:
 const kafka = new Kafka({
   clientId: 'ozen-consumer',
-  brokers: ['kafka:9092'],
+  brokers: ['partzoof.shtootnet.shtoot.oraclevcn.com:9092'],
   retry: {
     initialRetryTime: 300,
     retries: 50

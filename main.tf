@@ -9,7 +9,6 @@ provider "oci" {
 resource "oci_core_virtual_network" "vcn" {
   cidr_block     = "10.0.0.0/16"
   display_name   = "shtootapp-vcn"
-  compartment_id = var.compartment_ocid
   dns_label = "shtoot"
   compartment_id = var.compartment_ocid
 }
@@ -38,8 +37,7 @@ resource "oci_core_subnet" "subnet" {
   display_name      = "shtootapp-subnet"
   route_table_id    = oci_core_route_table.public_rt.id
   dns_label         = "shtootnet"
-  dns_label = "apps"
-  prohibit_public_ip_on_vnic = true
+  prohibit_public_ip_on_vnic = false
   security_list_ids = [oci_core_virtual_network.vcn.default_security_list_id]
 }
 
@@ -48,6 +46,10 @@ resource "oci_core_instance" "partzoof" {
   compartment_id   = var.compartment_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   shape            = var.vm_shape
+  shape_config {
+    ocpus         = 1
+    memory_in_gbs = 8
+  }
   source_details {
     source_type = "image"
     source_id   = data.oci_core_images.ubuntu.images[0].id
@@ -67,6 +69,10 @@ resource "oci_core_instance" "ozen" {
   compartment_id   = var.compartment_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   shape            = var.vm_shape
+  shape_config {
+    ocpus         = 1
+    memory_in_gbs = 8
+  }
   source_details {
     source_type = "image"
     source_id   = data.oci_core_images.ubuntu.images[0].id
@@ -85,10 +91,14 @@ resource "oci_core_instance" "ozen_gateway" {
   display_name     = "ozen-gateway"
   compartment_id   = var.compartment_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  shape            = var.vm_shape
+  shape            = "VM.Standard.E2.1.Micro"
+  #shape_config {
+  #  ocpus         = 1
+  #  memory_in_gbs = 4
+  #}
   source_details {
     source_type = "image"
-    source_id   = data.oci_core_images.ubuntu.images[0].id
+    source_id   = "ocid1.image.oc1.il-jerusalem-1.aaaaaaaa4zk7ya6s7katcz3l6bueqwxy46vrj22q4bcrbvzwllcd33lopnuq"
   }
   create_vnic_details {
     subnet_id        = oci_core_subnet.subnet.id
