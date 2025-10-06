@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
-import { User, Shtoot, Service } from './entities';
-import { sendShtootSaidEvent } from './partzoof-producer';
+import { User, Shtoot, Service } from './entities.js';
+import { sendShtootSaidEvent } from './partzoof-producer.js';
 
 export const eventBus = new EventEmitter();
 export const SHTOOT_ADDED = 'SHTOOT_ADDED';

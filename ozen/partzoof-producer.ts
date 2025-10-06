@@ -1,5 +1,5 @@
 import { Kafka } from 'kafkajs';
-import { Shtoot } from './entities';
+import { Shtoot } from './entities.js';
 
 const kafka = new Kafka({
   clientId: 'ozen-producer',

@@ -1,6 +1,6 @@
 import { Kafka } from 'kafkajs';
-import { shtoots, eventBus, SHTOOT_ADDED } from './resolvers';
-import { Shtoot } from './entities';
+import { shtoots, eventBus, SHTOOT_ADDED } from './resolvers.js';
+import { Shtoot } from './entities.js';
 
 // Configure as needed:
 const kafka = new Kafka({
