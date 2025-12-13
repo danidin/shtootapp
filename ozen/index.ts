@@ -9,6 +9,9 @@ import { resolvers } from './resolvers.js';
 import { startKafkaConsumer } from './partzoof-consumer.js';
 import { startKafkaProducer } from './partzoof-producer.js';
 
+const PROTOCOL = 'https';
+const WS_PROTOCOL = 'wss';
+const HOSTNAME = '149.81.7.230';
 const PORT = 4000;
 
 const startServer = async () => {
@@ -35,8 +38,8 @@ const startServer = async () => {
   useServer({ schema }, wsServer);
 
   httpServer.listen(PORT, () => {
-    console.log(`🦻 ozen GraphQL server ready at http://localhost:${PORT}/graphql`);
-    console.log(`🦻 Subscriptions ready at ws://localhost:${PORT}/graphql`);
+    console.log(`🦻 ozen GraphQL server ready at ${PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
+    console.log(`🦻 Subscriptions ready at ${WS_PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
   });
 };
 

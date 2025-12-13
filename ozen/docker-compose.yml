@@ -1,10 +1,11 @@
 version: '3.8'
 services:
   ozen:
-    image: ozen:latest
+    build:
+      context: .
     container_name: ozen
     environment:
-      - KAFKA_BROKERS=partzoof.apps.shtoot.oraclevcn.com:9092
+      - KAFKA_BROKER=10.243.0.5:9092
       - PORT=4000
     ports:
       - "4000:4000"
