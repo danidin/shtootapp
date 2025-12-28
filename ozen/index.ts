@@ -22,6 +22,10 @@ const startServer = async () => {
   
   const app = express();
 
+  app.get('/health', (req: any, res: any) => {
+    res.status(200).send('OK');
+  });
+
   const schema = makeExecutableSchema({ typeDefs, resolvers });
   const server = new ApolloServer({ schema });
 

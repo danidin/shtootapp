@@ -5,7 +5,7 @@ services:
       context: .
     container_name: ozen
     environment:
-      - KAFKA_BROKER=10.243.0.5:9092
+      - KAFKA_BROKER=10.0.1.13:9092
       - PORT=4000
     ports:
       - "4000:4000"
