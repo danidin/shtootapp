@@ -76,7 +76,7 @@
       }
     
       _connectWs() {
-        this.ws = new WebSocket('wss://129.159.149.175/graphql', 'graphql-transport-ws');
+        this.ws = new WebSocket('wss://api.shtoot.net/graphql', 'graphql-transport-ws');
         this.ws.onopen = () => {
           this.ws.send(JSON.stringify({
             type: 'connection_init',
@@ -123,7 +123,7 @@
         this.errorEl.textContent = '';
         if (!text) return;
         try {
-          const res = await fetch('https://129.159.149.175/graphql', {
+          const res = await fetch('https://api.shtoot.net/graphql', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
