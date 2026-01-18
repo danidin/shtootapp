@@ -40,7 +40,10 @@ services:
     container_name: ozen
     environment:
       - KAFKA_BROKER=kafka:9092
-      - PORT=4000
+      - OZEN_PROTOCOL=http
+      - OZEN_HOST=localhost
+      - OZEN_PORT=4000
+      - OZEN_WS_PROTOCOL=ws
     ports:
       - "4000:4000"
     depends_on:

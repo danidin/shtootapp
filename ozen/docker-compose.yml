@@ -6,6 +6,9 @@ services:
     container_name: ozen
     environment:
       - KAFKA_BROKER=10.0.1.13:9092
-      - PORT=4000
+      - OZEN_PROTOCOL=https
+      - OZEN_HOST=149.81.7.230
+      - OZEN_PORT=4000
+      - OZEN_WS_PROTOCOL=wss
     ports:
       - "4000:4000"

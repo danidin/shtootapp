@@ -10,10 +10,10 @@ import { startKafkaConsumer } from './partzoof-consumer.js';
 import { startKafkaProducer } from './partzoof-producer.js';
 import { decodeJwtResponse } from './auth.js';
 
-const PROTOCOL = 'https';
-const WS_PROTOCOL = 'wss';
-const HOSTNAME = '149.81.7.230';
-const PORT = 4000;
+const PROTOCOL = process.env.OZEN_PROTOCOL;
+const WS_PROTOCOL = process.env.OZEN_WS_PROTOCOL;
+const HOSTNAME = process.env.OZEN_HOST;
+const PORT = process.env.OZEN_PORT;
 
 const startServer = async () => {
   await Promise.all([
@@ -64,8 +64,6 @@ const startServer = async () => {
     console.log(`🦻 ozen GraphQL server ready at ${PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
     console.log(`🦻 Subscriptions ready at ${WS_PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
   });
-};
-  // ...
 };
 
 startServer();

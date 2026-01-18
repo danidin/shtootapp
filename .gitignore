@@ -1,8 +1,5 @@
 **/node_modules/
-**/.terraform/
-terraform.tfvars
-terraform.tfstate
-terraform.tfstate.backup
 ozen-gateway/certs
 dist/
 .vscode/
+**/.env
