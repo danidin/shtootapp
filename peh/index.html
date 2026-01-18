@@ -130,10 +130,10 @@
               Authorization: `Bearer ${this.jwt}`
             },
             body: JSON.stringify({
-              query: `mutation($userID: ID!, $text: String!) {
-                createShtoot(userID: $userID, text: $text) { ID userID text timestamp }
+              query: `mutation($userID: ID!, $text: String!, $space: String) {
+                createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
               }`,
-              variables: { userID: this.userID, text },
+              variables: { userID: this.userID, text, space: 'dannybmail@gmail.com,edenharazi@gmail.com' },
             }),
           });
           const json = await res.json();

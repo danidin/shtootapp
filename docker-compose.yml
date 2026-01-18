@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ozen
     environment:
-      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_BROKER=kafka:9092
       - PORT=4000
     ports:
       - "4000:4000"

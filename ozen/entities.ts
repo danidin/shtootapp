@@ -9,6 +9,7 @@ export interface Shtoot {
   userID: string;
   text: string;
   timestamp: number;
+  space?: string;
 }
 
 export interface Service {

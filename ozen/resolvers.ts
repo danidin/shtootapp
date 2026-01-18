@@ -15,7 +15,12 @@ export const resolvers = {
   Query: {
     users: () => users,
     user: (_: any, { ID }: { ID: string }) => users.find(u => u.ID === ID),
-    shtoots: () => shtoots,
+    shtoots: (_: any, __: any, context: { user?: { email: string } }) => {
+      if (context.user) {
+        return shtoots.filter(s => !s.space || s.space.includes(context.user.email));
+      }
+      return shtoots;
+    },
     shtoot: (_: any, { ID }: { ID: string }) => shtoots.find(s => s.ID === ID),
     services: () => services,
     service: (_: any, { ID }: { ID: string }) => services.find(s => s.ID === ID),
@@ -26,8 +31,11 @@ export const resolvers = {
       users.push(user);
       return user;
     },
-    createShtoot: async (_: any, { userID, text }: { userID: string, text: string }) => {
-      const shtoot = { ID: generateID(), userID, text };
+    createShtoot: async (_: any, { userID, text, space }: { userID: string, text: string, space?: string }) => {
+      const shtoot: Shtoot = { ID: generateID(), userID, text, timestamp: 0 };
+      if (space) {
+        shtoot.space = space;
+      }
       await sendShtootSaidEvent(shtoot);
       return shtoot;
     },
@@ -39,27 +47,32 @@ export const resolvers = {
   },
   Subscription: {
     shtootAdded: {
-      subscribe: async function* () {
-        const queue: Shtoot[] = [...shtoots];
-        const handler = (shtoot: Shtoot) => queue.push(shtoot);
+      subscribe: async function* (_, __, context: { user?: { email: string } }) {
+        const user = context.user;
+        const queue: Shtoot[] = shtoots.filter(s => !s.space || (user && s.space.includes(user.email)));
+
+        const handler = (shtoot: Shtoot) => {
+          if (!shtoot.space || (user && shtoot.space.includes(user.email))) {
+            queue.push(shtoot);
+          }
+        };
 
         eventBus.on(SHTOOT_ADDED, handler);
 
         try {
           while (true) {
-            if (queue.length === 0) {
+            if (queue.length > 0) {
+              yield { shtootAdded: queue.shift() };
+            } else {
               await new Promise(resolve => {
-                const check = () => {
-                  if (queue.length > 0) {
+                const check = (shtoot: Shtoot) => {
+                  if (!shtoot.space || (user && shtoot.space.includes(user.email))) {
                     eventBus.off(SHTOOT_ADDED, check);
                     resolve(null);
                   }
                 };
                 eventBus.on(SHTOOT_ADDED, check);
               });
-            }
-            while (queue.length > 0) {
-              yield { shtootAdded: queue.shift() };
             }
           }
         } finally {

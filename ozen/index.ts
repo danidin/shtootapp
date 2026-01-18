@@ -8,6 +8,7 @@ import { typeDefs } from './typeDefs.js';
 import { resolvers } from './resolvers.js';
 import { startKafkaConsumer } from './partzoof-consumer.js';
 import { startKafkaProducer } from './partzoof-producer.js';
+import { decodeJwtResponse } from './auth.js';
 
 const PROTOCOL = 'https';
 const WS_PROTOCOL = 'wss';
@@ -27,11 +28,22 @@ const startServer = async () => {
   });
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
-  const server = new ApolloServer({ schema });
+
+  const server = new ApolloServer({
+    schema,
+    context: ({ req }) => {
+      if (!req.headers.authorization) {
+        return { user: null };
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      const user = decodeJwtResponse(token);
+      return { user };
+    },
+   });
 
   await server.start();
   server.applyMiddleware({ app, path: '/graphql' });
-
+  
   const httpServer = createServer(app);
 
   const wsServer = new WebSocketServer({
@@ -39,12 +51,21 @@ const startServer = async () => {
     path: '/graphql',
   });
 
-  useServer({ schema }, wsServer);
+  useServer({
+    schema,
+    context: (ctx, msg, args) => {
+      const token = ctx.connectionParams?.Authorization?.split(' ')[1];
+      const user = decodeJwtResponse(token);
+      return { user };
+    },
+  }, wsServer);
 
   httpServer.listen(PORT, () => {
     console.log(`🦻 ozen GraphQL server ready at ${PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
     console.log(`🦻 Subscriptions ready at ${WS_PROTOCOL}://${HOSTNAME}:${PORT}/graphql`);
   });
+};
+  // ...
 };
 
 startServer();

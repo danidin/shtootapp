@@ -12,6 +12,7 @@ export const typeDefs = gql`
     userID: ID!
     text: String!
     timestamp: Float
+    space: String
   }
 
   type Service {
@@ -30,7 +31,7 @@ export const typeDefs = gql`
 
   type Mutation {
     createUser(email: String!, displayName: String!): User!
-    createShtoot(userID: ID!, text: String!): Shtoot!
+    createShtoot(userID: ID!, text: String!, space: String): Shtoot!
     createService(pathToContract: String!): Service!
   }
 
