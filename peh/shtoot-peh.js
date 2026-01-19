@@ -14,7 +14,8 @@ class ShtootPeh extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         .shtoots { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 10px; background: #f8f8fa; padding: 6px; font-family: sans-serif; }
-        .shtoot { border-bottom: 1px solid #eee; padding: 3px 0; }
+        .shtoot { border-bottom: 1px solid #eee; padding: 4px 6px; border-radius: 4px; margin-bottom: 2px; }
+        .shtoot.mine { background: #e3f2fd; }
         .shtoot a { color: #0066cc; text-decoration: none; }
         .shtoot a:hover { text-decoration: underline; }
         textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; }
@@ -59,7 +60,7 @@ class ShtootPeh extends HTMLElement {
   _renderShtoots() {
     const filtered = this.shtoots.filter(s => s.space === this.space);
     this.listEl.innerHTML = filtered.map(s =>
-      `<div class="shtoot">
+      `<div class="shtoot${s.userID === this.userID ? ' mine' : ''}">
         <span>${this._linkify(s.text)}</span>
         <div class="meta">${this._escapeHtml(s.userID)} @ ${new Date(Number(s.timestamp)).toLocaleTimeString()}</div>
       </div>`
