@@ -11,6 +11,8 @@ class ShtootPeh extends HTMLElement {
     this.wsUrl = this.isDev ? 'ws://localhost:4000/graphql' : 'wss://api.shtoot.net/graphql';
     this.ws = null;
     this.subscribed = false;
+    this.notificationRequested = false;
+    this.connectedAt = Date.now();
     this.shadowRoot.innerHTML = `
       <style>
         .shtoots { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 10px; background: #f8f8fa; padding: 6px; font-family: sans-serif; }
@@ -35,7 +37,24 @@ class ShtootPeh extends HTMLElement {
     this.listEl = this.shadowRoot.querySelector('.shtoots');
     this.errorEl = this.shadowRoot.querySelector('.error');
     this.shadowRoot.querySelector('button').onclick = () => this._createShtoot();
+    this._requestNotificationPermission();
     this._connectWs();
+  }
+
+  _requestNotificationPermission() {
+    if (!this.notificationRequested && 'Notification' in window && Notification.permission === 'default') {
+      this.notificationRequested = true;
+      Notification.requestPermission();
+    }
+  }
+
+  _notify(shtoot) {
+    if ('Notification' in window && Notification.permission === 'granted' && shtoot.userID !== this.userID && shtoot.timestamp > this.connectedAt) {
+      new Notification(`${shtoot.userID}`, {
+        body: shtoot.text,
+        tag: shtoot.ID
+      });
+    }
   }
 
   disconnectedCallback() {
@@ -103,8 +122,10 @@ class ShtootPeh extends HTMLElement {
           this.subscribed = true;
         }
         if (msg.type === 'next' && msg.id === '1' && msg.payload && msg.payload.data && msg.payload.data.shtootAdded) {
-          this.shtoots.push(msg.payload.data.shtootAdded);
+          const shtoot = msg.payload.data.shtootAdded;
+          this.shtoots.push(shtoot);
           this._renderShtoots();
+          this._notify(shtoot);
         }
         if (msg.type === 'complete') {
           this.errorEl.textContent = 'Subscription ended';
