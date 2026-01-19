@@ -1,0 +1,147 @@
+class ShtootPeh extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.shtoots = [];
+    this.jwt = localStorage.getItem('jwt');
+    this.userID = this.decodeJwtResponse(this.jwt).email;
+    this.space = this._getSpaceFromRoute();
+    this.isDev = new URLSearchParams(window.location.search).get('dev') === 'true';
+    this.apiUrl = this.isDev ? 'http://localhost:4000/graphql' : 'https://api.shtoot.net/graphql';
+    this.wsUrl = this.isDev ? 'ws://localhost:4000/graphql' : 'wss://api.shtoot.net/graphql';
+    this.ws = null;
+    this.subscribed = false;
+    this.shadowRoot.innerHTML = `
+      <style>
+        .shtoots { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 10px; background: #f8f8fa; padding: 6px; font-family: sans-serif; }
+        .shtoot { border-bottom: 1px solid #eee; padding: 3px 0; }
+        textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; }
+        button { margin-top: 2px; }
+        .meta { font-size: 0.8em; color: #888; }
+        .error { color: red; font-size: 0.9em; }
+      </style>
+      <div class="shtoots"></div>
+      <textarea placeholder="Say a Shtoot..."></textarea><br/>
+      <button>Send</button>
+      <div class="error"></div>
+    `;
+  }
+
+  connectedCallback() {
+    this.textarea = this.shadowRoot.querySelector('textarea');
+    this.listEl = this.shadowRoot.querySelector('.shtoots');
+    this.errorEl = this.shadowRoot.querySelector('.error');
+    this.shadowRoot.querySelector('button').onclick = () => this._createShtoot();
+    this._connectWs();
+  }
+
+  disconnectedCallback() {
+    if (this.ws) this.ws.close();
+  }
+
+  decodeJwtResponse(token) {
+    let base64Url = token.split('.')[1];
+    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  }
+
+  _getSpaceFromRoute() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('space');
+  }
+
+  _renderShtoots() {
+    const filtered = this.shtoots.filter(s => s.space === this.space);
+    this.listEl.innerHTML = filtered.map(s =>
+      `<div class="shtoot">
+        <span>${this._escapeHtml(s.text)}</span>
+        <div class="meta">${this._escapeHtml(s.userID)} @ ${new Date(Number(s.timestamp)).toLocaleTimeString()}</div>
+      </div>`
+    ).join('');
+    this.listEl.scrollTop = this.listEl.scrollHeight;
+  }
+
+  _escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, s => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s] || s
+    ));
+  }
+
+  _connectWs() {
+    this.ws = new WebSocket(this.wsUrl, 'graphql-transport-ws');
+    this.ws.onopen = () => {
+      this.ws.send(JSON.stringify({
+        type: 'connection_init',
+        payload: { Authorization: `Bearer ${this.jwt}` }
+      }));
+    };
+    this.ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'connection_ack' && !this.subscribed) {
+          this.ws.send(JSON.stringify({
+            id: '1',
+            type: 'subscribe',
+            payload: {
+              query: `subscription { shtootAdded { ID userID text timestamp space } }`
+            }
+          }));
+          this.subscribed = true;
+        }
+        if (msg.type === 'next' && msg.id === '1' && msg.payload && msg.payload.data && msg.payload.data.shtootAdded) {
+          this.shtoots.push(msg.payload.data.shtootAdded);
+          this._renderShtoots();
+        }
+        if (msg.type === 'complete') {
+          this.errorEl.textContent = 'Subscription ended';
+        }
+        if (msg.type === 'error') {
+          this.errorEl.textContent = 'Subscription error: ' + JSON.stringify(msg.payload);
+        }
+      } catch (e) {
+        this.errorEl.textContent = 'Bad WS message: ' + e;
+      }
+    };
+    this.ws.onerror = (e) => {
+      this.errorEl.textContent = 'WebSocket error';
+    };
+    this.ws.onclose = (e) => {
+      this.errorEl.textContent = 'WebSocket closed: ' + (e.reason || e.code);
+    };
+  }
+
+  async _createShtoot() {
+    const text = this.textarea.value.trim();
+    this.errorEl.textContent = '';
+    if (!text) return;
+    try {
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.jwt}`
+        },
+        body: JSON.stringify({
+          query: `mutation($userID: ID!, $text: String!, $space: String) {
+            createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
+          }`,
+          variables: { userID: this.userID, text, space: this.space },
+        }),
+      });
+      const json = await res.json();
+      if (json.errors) {
+        this.errorEl.textContent = json.errors[0].message;
+      } else {
+        this.textarea.value = '';
+      }
+    } catch (err) {
+      this.errorEl.textContent = 'Network error: ' + err;
+    }
+  }
+}
+
+customElements.define('shtoot-peh', ShtootPeh);
