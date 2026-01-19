@@ -15,13 +15,24 @@ class ShtootPeh extends HTMLElement {
     this.connectedAt = Date.now();
     this.shadowRoot.innerHTML = `
       <style>
-        .shtoots { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 10px; background: #f8f8fa; padding: 6px; font-family: sans-serif; }
-        .shtoot { border-bottom: 1px solid #eee; padding: 4px 6px; border-radius: 4px; margin-bottom: 2px; }
+        :host { display: flex; flex-direction: column; height: 100%; }
+        .shtoots { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 6px; font-family: sans-serif; }
+        .shtoot { border: 1px solid #eee; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; background: white; }
         .shtoot.mine { background: #e3f2fd; }
         .shtoot a { color: #0066cc; text-decoration: none; }
         .shtoot a:hover { text-decoration: underline; }
-        textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; }
-        button { margin-top: 2px; }
+        textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; box-sizing: border-box; }
+        button {
+          padding: 8px 20px;
+          background: #0066cc;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        button:hover { background: #0052a3; }
+        button:active { background: #004080; }
         .meta { font-size: 0.8em; color: #888; }
         .error { color: red; font-size: 0.9em; }
       </style>
@@ -37,6 +48,12 @@ class ShtootPeh extends HTMLElement {
     this.listEl = this.shadowRoot.querySelector('.shtoots');
     this.errorEl = this.shadowRoot.querySelector('.error');
     this.shadowRoot.querySelector('button').onclick = () => this._createShtoot();
+    this.textarea.onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this._createShtoot();
+      }
+    };
     this._requestNotificationPermission();
     this._connectWs();
   }
