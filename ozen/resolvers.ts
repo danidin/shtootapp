@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { GraphQLError } from 'graphql';
 import { User, Shtoot, Service } from './entities.js';
 import { sendShtootSaidEvent } from './partzoof-producer.js';
 
@@ -31,7 +32,12 @@ export const resolvers = {
       users.push(user);
       return user;
     },
-    createShtoot: async (_: any, { userID, text, space }: { userID: string, text: string, space?: string }) => {
+    createShtoot: async (_: any, { userID, text, space }: { userID: string, text: string, space?: string }, context: { user?: { email: string } }) => {
+      if (space && (!context.user || !space.includes(context.user.email))) {
+        throw new GraphQLError('You are not a member of this space', {
+          extensions: { code: 'FORBIDDEN', http: { status: 403 } }
+        });
+      }
       const shtoot: Shtoot = { ID: generateID(), userID, text, timestamp: 0 };
       if (space) {
         shtoot.space = space;

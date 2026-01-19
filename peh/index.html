@@ -19,6 +19,10 @@
         this.shtoots = [];
         this.jwt = localStorage.getItem('jwt');
         this.userID = this.decodeJwtResponse(this.jwt).email;
+        this.space = this._getSpaceFromRoute();
+        this.isDev = new URLSearchParams(window.location.search).get('dev') === 'true';
+        this.apiUrl = this.isDev ? 'http://localhost:4000/graphql' : 'https://api.shtoot.net/graphql';
+        this.wsUrl = this.isDev ? 'ws://localhost:4000/graphql' : 'wss://api.shtoot.net/graphql';
         this.ws = null;
         this.subscribed = false;
         this.shadowRoot.innerHTML = `
@@ -55,12 +59,18 @@
         let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
-    
+
         return JSON.parse(jsonPayload);
+      }
+
+      _getSpaceFromRoute() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('space');
       }
     
       _renderShtoots() {
-        this.listEl.innerHTML = this.shtoots.map(s =>
+        const filtered = this.shtoots.filter(s => s.space === this.space);
+        this.listEl.innerHTML = filtered.map(s =>
           `<div class="shtoot">
             <span>${this._escapeHtml(s.text)}</span>
             <div class="meta">${this._escapeHtml(s.userID)} @ ${new Date(Number(s.timestamp)).toLocaleTimeString()}</div>
@@ -76,7 +86,7 @@
       }
     
       _connectWs() {
-        this.ws = new WebSocket('wss://api.shtoot.net/graphql', 'graphql-transport-ws');
+        this.ws = new WebSocket(this.wsUrl, 'graphql-transport-ws');
         this.ws.onopen = () => {
           this.ws.send(JSON.stringify({
             type: 'connection_init',
@@ -91,7 +101,7 @@
                 id: '1',
                 type: 'subscribe',
                 payload: {
-                  query: `subscription { shtootAdded { ID userID text timestamp } }`
+                  query: `subscription { shtootAdded { ID userID text timestamp space } }`
                 }
               }));
               this.subscribed = true;
@@ -123,7 +133,7 @@
         this.errorEl.textContent = '';
         if (!text) return;
         try {
-          const res = await fetch('https://api.shtoot.net/graphql', {
+          const res = await fetch(this.apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -133,7 +143,7 @@
               query: `mutation($userID: ID!, $text: String!, $space: String) {
                 createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
               }`,
-              variables: { userID: this.userID, text, space: 'dannybmail@gmail.com,edenharazi@gmail.com' },
+              variables: { userID: this.userID, text, space: this.space },
             }),
           });
           const json = await res.json();
