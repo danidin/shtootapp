@@ -1,4 +1,4 @@
-export const decodeJwtResponse = (token: string) => {
+export const decodeJwtResponse = (token: string | undefined) => {
   if (!token) return null;
   try {
     const base64Url = token.split('.')[1];

@@ -17,8 +17,9 @@ export const resolvers = {
     users: () => users,
     user: (_: any, { ID }: { ID: string }) => users.find(u => u.ID === ID),
     shtoots: (_: any, __: any, context: { user?: { email: string } }) => {
-      if (context.user) {
-        return shtoots.filter(s => !s.space || s.space.includes(context.user.email));
+      const user = context.user;
+      if (user) {
+        return shtoots.filter(s => !s.space || s.space.includes(user.email));
       }
       return shtoots;
     },
@@ -53,7 +54,7 @@ export const resolvers = {
   },
   Subscription: {
     shtootAdded: {
-      subscribe: async function* (_, __, context: { user?: { email: string } }) {
+      subscribe: async function* (_: any, __: any, context: { user?: { email: string } }) {
         const user = context.user;
         const queue: Shtoot[] = shtoots.filter(s => !s.space || (user && s.space.includes(user.email)));
 

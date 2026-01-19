@@ -53,8 +53,9 @@ const startServer = async () => {
 
   useServer({
     schema,
-    context: (ctx, msg, args) => {
-      const token = ctx.connectionParams?.Authorization?.split(' ')[1];
+    context: (ctx) => {
+      const auth = ctx.connectionParams?.Authorization;
+      const token = typeof auth === 'string' ? auth.split(' ')[1] : undefined;
       const user = decodeJwtResponse(token);
       return { user };
     },
