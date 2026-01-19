@@ -39,10 +39,7 @@ export const resolvers = {
           extensions: { code: 'FORBIDDEN', http: { status: 403 } }
         });
       }
-      const shtoot: Shtoot = { ID: generateID(), userID, text, timestamp: 0 };
-      if (space) {
-        shtoot.space = space;
-      }
+      const shtoot: Shtoot = { ID: generateID(), userID, text, timestamp: 0, space: space || '' };
       await sendShtootSaidEvent(shtoot);
       return shtoot;
     },

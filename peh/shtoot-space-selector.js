@@ -23,6 +23,7 @@ class ShtootSpaceSelector extends HTMLElement {
 
   connectedCallback() {
     this.listEl = this.shadowRoot.querySelector('.space-list');
+    this._renderSpaces();
     this._connectWs();
   }
 
@@ -57,17 +58,27 @@ class ShtootSpaceSelector extends HTMLElement {
   _renderSpaces() {
     const currentSpace = new URLSearchParams(window.location.search).get('space');
     const spaces = this._getSpaces();
-    this.listEl.innerHTML = spaces.map(space => {
+
+    const publicActive = !currentSpace ? 'active' : '';
+    let html = `<li class="space-item ${publicActive}" data-space="">Public</li>`;
+
+    html += spaces.map(space => {
       const isActive = space === currentSpace ? 'active' : '';
       const title = this._escapeHtml(this._formatSpaceTitle(space));
       return `<li class="space-item ${isActive}" data-space="${this._escapeHtml(space)}">${title}</li>`;
     }).join('');
 
+    this.listEl.innerHTML = html;
+
     this.listEl.querySelectorAll('.space-item').forEach(item => {
       item.onclick = () => {
         const space = item.dataset.space;
         const params = new URLSearchParams(window.location.search);
-        params.set('space', space);
+        if (space) {
+          params.set('space', space);
+        } else {
+          params.delete('space');
+        }
         window.location.search = params.toString();
       };
     });

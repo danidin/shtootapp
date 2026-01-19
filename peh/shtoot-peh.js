@@ -58,7 +58,9 @@ class ShtootPeh extends HTMLElement {
   }
 
   _renderShtoots() {
-    const filtered = this.shtoots.filter(s => s.space === this.space);
+    const filtered = this.shtoots.filter(s =>
+      this.space ? s.space === this.space : !s.space
+    );
     this.listEl.innerHTML = filtered.map(s =>
       `<div class="shtoot${s.userID === this.userID ? ' mine' : ''}">
         <span>${this._linkify(s.text)}</span>
@@ -137,7 +139,7 @@ class ShtootPeh extends HTMLElement {
           query: `mutation($userID: ID!, $text: String!, $space: String) {
             createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
           }`,
-          variables: { userID: this.userID, text, space: this.space },
+          variables: { userID: this.userID, text, space: this.space || '' },
         }),
       });
       const json = await res.json();
