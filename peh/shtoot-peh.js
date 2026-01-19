@@ -23,16 +23,19 @@ class ShtootPeh extends HTMLElement {
         .shtoot a:hover { text-decoration: underline; }
         textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; box-sizing: border-box; }
         button {
-          padding: 8px 20px;
+          padding: 12px 24px;
           background: #0066cc;
           color: white;
           border: none;
           border-radius: 4px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 16px;
         }
         button:hover { background: #0052a3; }
         button:active { background: #004080; }
+        @media (max-width: 768px) {
+          textarea { font-size: 16px; }
+        }
         .meta { font-size: 0.8em; color: #888; }
         .error { color: red; font-size: 0.9em; }
       </style>

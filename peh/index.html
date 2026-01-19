@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     if (!localStorage.getItem('jwt')) {
       window.location = '/peh/login'
@@ -9,16 +10,112 @@
   <script type="module" src="/peh/shtoot-peh.js"></script>
   <script type="module" src="/peh/shtoot-space-selector.js"></script>
   <script type="module" src="/peh/shtoot-user.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+    .sidebar-left {
+      width: 250px;
+      border-right: 1px solid #ccc;
+      overflow-y: auto;
+    }
+    .sidebar-right {
+      width: 200px;
+      border-left: 1px solid #ccc;
+      padding: 12px;
+    }
+    main {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    shtoot-peh { flex: 1; }
+    .mobile-header {
+      display: none;
+      padding: 6px 10px;
+      border-bottom: 1px solid #ccc;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 5;
+    }
+    .mobile-header button {
+      padding: 4px 10px;
+      background: none;
+      color: #0066cc;
+      border: 1px solid #0066cc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 9;
+    }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar-left, .sidebar-right {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        background: white;
+        z-index: 10;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+      }
+      .sidebar-left { left: 0; }
+      .sidebar-right {
+        right: 0;
+        left: auto;
+        transform: translateX(100%);
+      }
+      .sidebar-left.open { transform: translateX(0); }
+      .sidebar-right.open { transform: translateX(0); }
+      .mobile-header { display: flex; }
+      .overlay.open { display: block; }
+      main { padding: 10px; flex: 1; min-height: 0; }
+    }
+  </style>
 </head>
-<body style="margin: 0; display: flex; height: 100vh;">
-  <aside style="width: 250px; border-right: 1px solid #ccc; overflow-y: auto;">
+<body>
+  <div class="mobile-header">
+    <button onclick="toggleSidebar('left')">Spaces</button>
+    <button onclick="toggleSidebar('right')">Profile</button>
+  </div>
+  <div class="overlay" onclick="closeOverlay()"></div>
+  <aside class="sidebar-left">
     <shtoot-space-selector></shtoot-space-selector>
   </aside>
-  <main style="flex: 1; padding: 16px; display: flex; flex-direction: column;">
-    <shtoot-peh style="flex: 1;"></shtoot-peh>
+  <main>
+    <shtoot-peh></shtoot-peh>
   </main>
-  <aside style="width: 200px; border-left: 1px solid #ccc; padding: 12px;">
+  <aside class="sidebar-right">
     <shtoot-user></shtoot-user>
   </aside>
+  <script>
+    function toggleSidebar(side) {
+      const sidebar = document.querySelector(side === 'left' ? '.sidebar-left' : '.sidebar-right');
+      const overlay = document.querySelector('.overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('open', sidebar.classList.contains('open'));
+    }
+    function closeOverlay() {
+      document.querySelectorAll('.sidebar-left, .sidebar-right, .overlay').forEach(el => el.classList.remove('open'));
+    }
+  </script>
 </body>
 </html>
