@@ -1,5 +1,5 @@
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer, AuthenticationError } from 'apollo-server-express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { useServer } from 'graphql-ws/use/ws';
@@ -29,14 +29,31 @@ const startServer = async () => {
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
+  const isDev = process.env.NODE_ENV === 'development';
+
   const server = new ApolloServer({
     schema,
+    introspection: isDev,
+    plugins: isDev ? [] : [
+      {
+        async serverWillStart() {
+          return {
+            async renderLandingPage() {
+              return { html: '<html><body>Not found</body></html>' };
+            },
+          };
+        },
+      },
+    ],
     context: ({ req }) => {
       if (!req.headers.authorization) {
-        return { user: null };
+        throw new AuthenticationError('Authentication required');
       }
       const token = req.headers.authorization.split(' ')[1];
       const user = decodeJwtResponse(token);
+      if (!user) {
+        throw new AuthenticationError('Invalid token');
+      }
       return { user };
     },
    });
@@ -53,6 +70,15 @@ const startServer = async () => {
 
   useServer({
     schema,
+    onConnect: (ctx) => {
+      const auth = ctx.connectionParams?.Authorization;
+      const token = typeof auth === 'string' ? auth.split(' ')[1] : undefined;
+      const user = decodeJwtResponse(token);
+      if (!user) {
+        return false;
+      }
+      return true;
+    },
     context: (ctx) => {
       const auth = ctx.connectionParams?.Authorization;
       const token = typeof auth === 'string' ? auth.split(' ')[1] : undefined;

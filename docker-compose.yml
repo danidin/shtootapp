@@ -39,6 +39,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ozen
     environment:
+      - NODE_ENV=development
       - KAFKA_BROKER=kafka:9092
       - OZEN_PROTOCOL=http
       - OZEN_HOST=localhost
