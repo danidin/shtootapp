@@ -15,6 +15,8 @@ class ShtootPeh extends HTMLElement {
       <style>
         .shtoots { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 10px; background: #f8f8fa; padding: 6px; font-family: sans-serif; }
         .shtoot { border-bottom: 1px solid #eee; padding: 3px 0; }
+        .shtoot a { color: #0066cc; text-decoration: none; }
+        .shtoot a:hover { text-decoration: underline; }
         textarea { width: 100%; min-height: 2.5em; font-family: inherit; margin-bottom: 0.5em; }
         button { margin-top: 2px; }
         .meta { font-size: 0.8em; color: #888; }
@@ -58,7 +60,7 @@ class ShtootPeh extends HTMLElement {
     const filtered = this.shtoots.filter(s => s.space === this.space);
     this.listEl.innerHTML = filtered.map(s =>
       `<div class="shtoot">
-        <span>${this._escapeHtml(s.text)}</span>
+        <span>${this._linkify(s.text)}</span>
         <div class="meta">${this._escapeHtml(s.userID)} @ ${new Date(Number(s.timestamp)).toLocaleTimeString()}</div>
       </div>`
     ).join('');
@@ -69,6 +71,11 @@ class ShtootPeh extends HTMLElement {
     return String(str).replace(/[&<>"']/g, s => (
       { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s] || s
     ));
+  }
+
+  _linkify(str) {
+    const urlPattern = /(https?:\/\/[^\s<]+)/g;
+    return this._escapeHtml(str).replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   }
 
   _connectWs() {
