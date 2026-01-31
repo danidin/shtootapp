@@ -59,6 +59,11 @@ class ShtootSpaceSelector extends HTMLElement {
     const currentSpace = new URLSearchParams(window.location.search).get('space');
     const spaces = this._getSpaces();
 
+    // Include current space even if no messages yet
+    if (currentSpace && !spaces.includes(currentSpace)) {
+      spaces.unshift(currentSpace);
+    }
+
     const publicActive = !currentSpace ? 'active' : '';
     let html = `<li class="space-item ${publicActive}" data-space="">Public</li>`;
 
