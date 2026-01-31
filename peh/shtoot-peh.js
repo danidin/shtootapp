@@ -13,6 +13,7 @@ class ShtootPeh extends HTMLElement {
     this.subscribed = false;
     this.notificationRequested = false;
     this.connectedAt = Date.now();
+    this.swRegistration = null;
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: flex; flex-direction: column; height: 100%; }
@@ -57,8 +58,19 @@ class ShtootPeh extends HTMLElement {
         this._createShtoot();
       }
     };
+    this._registerServiceWorker();
     this._requestNotificationPermission();
     this._connectWs();
+  }
+
+  async _registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        this.swRegistration = await navigator.serviceWorker.register('/peh/sw.js');
+      } catch (e) {
+        console.log('Service worker registration failed:', e);
+      }
+    }
   }
 
   _requestNotificationPermission() {
@@ -70,10 +82,17 @@ class ShtootPeh extends HTMLElement {
 
   _notify(shtoot) {
     if ('Notification' in window && Notification.permission === 'granted' && shtoot.userID !== this.userID && shtoot.timestamp > this.connectedAt) {
-      new Notification(`${shtoot.userID}`, {
+      const options = {
         body: shtoot.text,
         tag: shtoot.ID
-      });
+      };
+      if (this.swRegistration) {
+        this.swRegistration.showNotification(shtoot.userID, options);
+      } else {
+        try {
+          new Notification(shtoot.userID, options);
+        } catch (e) {}
+      }
     }
   }
 
