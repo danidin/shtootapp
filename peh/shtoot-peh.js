@@ -1,3 +1,5 @@
+import { initKeys, encryptForSpace, decryptMessage, getStoredKeys } from './crypto.js';
+
 class ShtootPeh extends HTMLElement {
   constructor() {
     super();
@@ -14,6 +16,7 @@ class ShtootPeh extends HTMLElement {
     this.notificationRequested = false;
     this.connectedAt = Date.now();
     this.swRegistration = null;
+    this.cryptoKeys = null;
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: flex; flex-direction: column; height: 100%; }
@@ -39,6 +42,7 @@ class ShtootPeh extends HTMLElement {
         }
         .meta { font-size: 0.8em; color: #888; }
         .error { color: red; font-size: 0.9em; }
+        .warn { color: red; font-size: 0.85em; margin-left: 4px; }
       </style>
       <div class="shtoots"></div>
       <textarea placeholder="Say a Shtoot..."></textarea><br/>
@@ -61,6 +65,7 @@ class ShtootPeh extends HTMLElement {
     this._registerServiceWorker();
     this._requestNotificationPermission();
     this._connectWs();
+    initKeys(this.userID, this.apiUrl).then(keys => { this.cryptoKeys = keys; }).catch(() => {});
   }
 
   async _registerServiceWorker() {
@@ -119,12 +124,20 @@ class ShtootPeh extends HTMLElement {
     const filtered = this.shtoots.filter(s =>
       this.space ? s.space === this.space : !s.space
     );
-    this.listEl.innerHTML = filtered.map(s =>
-      `<div class="shtoot${s.userID === this.userID ? ' mine' : ''}">
-        <span>${this._linkify(s.text)}</span>
+    this.listEl.innerHTML = filtered.map(s => {
+      let displayText;
+      if (s._encrypted) {
+        displayText = `🔒 ${this._linkify(s.text)}`;
+      } else if (this._is1to1Space(this.space)) {
+        displayText = `${this._linkify(s.text)}<span class="warn">⚠️</span>`;
+      } else {
+        displayText = this._linkify(s.text);
+      }
+      return `<div class="shtoot${s.userID === this.userID ? ' mine' : ''}">
+        <span>${displayText}</span>
         <div class="meta">${this._escapeHtml(s.userID)} @ ${new Date(Number(s.timestamp)).toLocaleTimeString()}</div>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
     this.listEl.scrollTop = this.listEl.scrollHeight;
   }
 
@@ -147,7 +160,7 @@ class ShtootPeh extends HTMLElement {
         payload: { Authorization: `Bearer ${this.jwt}` }
       }));
     };
-    this.ws.onmessage = (event) => {
+    this.ws.onmessage = async (event) => {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'connection_ack' && !this.subscribed) {
@@ -162,6 +175,16 @@ class ShtootPeh extends HTMLElement {
         }
         if (msg.type === 'next' && msg.id === '1' && msg.payload && msg.payload.data && msg.payload.data.shtootAdded) {
           const shtoot = msg.payload.data.shtootAdded;
+          try {
+            const parsed = JSON.parse(shtoot.text);
+            if (parsed && parsed.e2e === 1) {
+              const keys = this.cryptoKeys || await getStoredKeys();
+              if (keys) {
+                shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
+                shtoot._encrypted = true;
+              }
+            }
+          } catch (_) {}
           this.shtoots.push(shtoot);
           this._renderShtoots();
           this._notify(shtoot);
@@ -185,10 +208,17 @@ class ShtootPeh extends HTMLElement {
   }
 
   async _createShtoot() {
-    const text = this.textarea.value.trim();
+    let text = this.textarea.value.trim();
     this.errorEl.textContent = '';
     if (!text) return;
     try {
+      if (this._is1to1Space(this.space)) {
+        const keys = this.cryptoKeys || await getStoredKeys();
+        if (keys) {
+          const recipientEmail = this._getRecipientEmail(this.space);
+          text = await encryptForSpace(text, this.userID, recipientEmail, keys, this.apiUrl);
+        }
+      }
       const res = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
@@ -211,6 +241,14 @@ class ShtootPeh extends HTMLElement {
     } catch (err) {
       this.errorEl.textContent = 'Network error: ' + err;
     }
+  }
+
+  _is1to1Space(space) {
+    return !!space && space.split(',').length === 2;
+  }
+
+  _getRecipientEmail(space) {
+    return space.split(',').find(e => e !== this.userID);
   }
 }
 
