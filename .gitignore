@@ -3,3 +3,4 @@ ozen-gateway/certs
 dist/
 .vscode/
 **/.env
+hosts.conf

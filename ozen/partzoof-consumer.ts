@@ -14,6 +14,8 @@ const kafka = new Kafka({
 
 const topic = 'shtootapp-events';
 
+export const publicKeys: Map<string, string> = new Map();
+
 export const startKafkaConsumer = async () => {
   const consumer = kafka.consumer({ groupId: `ozen-consumer-group-${Math.random()}` });
 
@@ -24,6 +26,19 @@ export const startKafkaConsumer = async () => {
     eachMessage: async ({ message }) => {
       // KafkaJS gives keys/values as Buffer or null
       const key = message.key?.toString();
+
+      if (key === 'key-created') {
+        const valueStr = message.value?.toString();
+        if (!valueStr) return;
+        try {
+          const { email, publicKey } = JSON.parse(valueStr);
+          if (email && publicKey) publicKeys.set(email, publicKey);
+        } catch (err) {
+          console.error('[Kafka] Failed to parse key-created event:', err);
+        }
+        return;
+      }
+
       if (key !== 'shtoot-said') return;
 
       // Assuming the value is a JSON string representing the Shtoot entity:

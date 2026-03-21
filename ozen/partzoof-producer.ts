@@ -30,4 +30,11 @@ export const sendShtootSaidEvent = async (shtoot: Omit<Shtoot, 'timestamp'>) => 
   });
 };
 
+export const sendKeyCreatedEvent = async (email: string, publicKey: string) => {
+  await producer.send({
+    topic,
+    messages: [{ key: 'key-created', value: JSON.stringify({ email, publicKey }) }],
+  });
+};
+
 export { producer };
