@@ -215,7 +215,7 @@ class ShtootPeh extends HTMLElement {
       if (this._is1to1Space(this.space)) {
         const keys = this.cryptoKeys || await getStoredKeys();
         if (keys) {
-          const recipientEmail = this._getRecipientEmail(this.space);
+          const recipientEmail = this._getRecipientEmail(this.space) || this.userID;
           text = await encryptForSpace(text, this.userID, recipientEmail, keys, this.apiUrl);
         }
       }
