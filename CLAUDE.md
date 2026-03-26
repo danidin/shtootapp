@@ -74,7 +74,7 @@ RSA-OAEP 2048-bit can only encrypt ~190 bytes directly. For messages of any leng
 | `/ozen/index.ts` | `/key/:email` GET and `/key` POST endpoints |
 | `/ozen/partzoof-producer.ts` | `sendKeyCreatedEvent()` |
 | `/ozen/partzoof-consumer.ts` | Handles `key-created` events, exports `publicKeys` Map |
-| `/peh/crypto.js` | Web Crypto helpers — `initKeys`, `createNewKey`, `exportKeyBundle`, `importKeyBundle`, `clearStoredKey` |
+| `/peh/crypto.js` | Web Crypto helpers — `initKeys`, `createNewKey`, `exportKeyBundle`, `importKeyBundle`, `clearStoredKey`. Keys are scoped per user via `keyId(userID)` = `'keypair-' + userID` |
 | `/peh/shtoot-peh.js` | Key setup overlay on first load, encrypt on send, decrypt on receive |
 | `/peh/shtoot-user.js` | Export key / Import key UI in profile sidebar |
 
@@ -113,6 +113,10 @@ Keys can be migrated from one device to another via an encrypted export blob + 6
 The blob is the private key encrypted with AES-GCM using a key derived from the PIN via PBKDF2 (600k iterations). The private key never touches the server.
 
 > Note: keys generated before migration support was added are non-extractable. "Export key…" will offer to regenerate a new key pair — old encrypted messages become unreadable after regeneration.
+
+### Multi-user devices
+
+Keys are scoped by `userID` (email) in IndexedDB — each account gets its own entry (`keypair-<userID>`). Switching Google accounts on the same device will correctly find each user's own key, or show the setup overlay if they haven't set one up yet.
 
 ### Known Limitations (v1)
 - Key loss = message loss (no recovery)
