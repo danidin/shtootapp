@@ -18,6 +18,7 @@ Real-time messaging/social communication application with a decentralized archit
 - Kafka event streaming for decentralized message handling
 - JWT authentication with email-based identity
 - Mobile-responsive UI
+- End-to-end encryption for 1:1 messages (hybrid RSA-OAEP + AES-GCM)
 
 ## How It Works
 
@@ -35,11 +36,11 @@ docker-compose up
 
 ---
 
-## E2E Encryption Plan (TODO)
+## E2E Encryption
 
-Implement end-to-end encryption for 1:1 messages using **hybrid encryption** (RSA-OAEP + AES-GCM), with private keys stored in IndexedDB and public keys distributed via Kafka events.
+1:1 messages use **hybrid encryption** (RSA-OAEP + AES-GCM), with private keys stored in IndexedDB and public keys distributed via Kafka events.
 
-### Why Hybrid Encryption?
+### How It Works
 RSA-OAEP 2048-bit can only encrypt ~190 bytes directly. For messages of any length:
 1. Generate random AES-256 key per message
 2. Encrypt message with AES-GCM (fast, unlimited length)
@@ -66,16 +67,15 @@ RSA-OAEP 2048-bit can only encrypt ~190 bytes directly. For messages of any leng
                         └───────────┘
 ```
 
-### Files to Modify
+### Key Files
 
-| File | Changes |
-|------|---------|
-| `/ozen/index.ts` | Add `/key/:email` GET and `/key` POST endpoints |
-| `/ozen/partzoof-producer.ts` | Add `sendKeyCreatedEvent()` |
-| `/ozen/partzoof-consumer.ts` | Handle `key-created` events, export `publicKeys` Map |
-| `/peh/crypto.js` | **New file** - Web Crypto helpers |
+| File | Role |
+|------|------|
+| `/ozen/index.ts` | `/key/:email` GET and `/key` POST endpoints |
+| `/ozen/partzoof-producer.ts` | `sendKeyCreatedEvent()` |
+| `/ozen/partzoof-consumer.ts` | Handles `key-created` events, exports `publicKeys` Map |
+| `/peh/crypto.js` | Web Crypto helpers |
 | `/peh/shtoot-peh.js` | Key init on login, encrypt on send, decrypt on receive |
-| `/peh/index.html` | Import crypto.js |
 
 ### Message Format
 
