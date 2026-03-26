@@ -54,18 +54,12 @@ export async function getStoredKeys() {
   return dbGet(db, KEY_ID);
 }
 
+// Publishes the existing key to the server. Returns null if no key exists yet.
 export async function initKeys(userEmail, baseApiUrl) {
   const apiBase = baseApiUrl.replace('/graphql', '');
   const db = await openDb();
-  let stored = await dbGet(db, KEY_ID);
-
-  if (!stored) {
-    const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt']);
-    const spki = await crypto.subtle.exportKey('spki', keyPair.publicKey);
-    const publicKeyB64 = arrayBufferToBase64(spki);
-    stored = { privateKey: keyPair.privateKey, publicKeyB64 };
-    await dbPut(db, KEY_ID, stored);
-  }
+  const stored = await dbGet(db, KEY_ID);
+  if (!stored) return null;
 
   // (Re-)publish public key — server may have restarted and lost in-memory map
   await fetch(`${apiBase}/key`, {
@@ -74,6 +68,24 @@ export async function initKeys(userEmail, baseApiUrl) {
     body: JSON.stringify({ email: userEmail, publicKey: stored.publicKeyB64 }),
   }).catch(() => {});
 
+  return stored;
+}
+
+// Generates a new key pair, stores it, and publishes it. Call only when the user
+// explicitly chooses to start fresh on a new device.
+export async function createNewKey(userEmail, baseApiUrl) {
+  const apiBase = baseApiUrl.replace('/graphql', '');
+  const db = await openDb();
+  const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt']);
+  const spki = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+  const publicKeyB64 = arrayBufferToBase64(spki);
+  const stored = { privateKey: keyPair.privateKey, publicKeyB64 };
+  await dbPut(db, KEY_ID, stored);
+  await fetch(`${apiBase}/key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: userEmail, publicKey: publicKeyB64 }),
+  }).catch(() => {});
   return stored;
 }
 

@@ -74,8 +74,9 @@ RSA-OAEP 2048-bit can only encrypt ~190 bytes directly. For messages of any leng
 | `/ozen/index.ts` | `/key/:email` GET and `/key` POST endpoints |
 | `/ozen/partzoof-producer.ts` | `sendKeyCreatedEvent()` |
 | `/ozen/partzoof-consumer.ts` | Handles `key-created` events, exports `publicKeys` Map |
-| `/peh/crypto.js` | Web Crypto helpers |
-| `/peh/shtoot-peh.js` | Key init on login, encrypt on send, decrypt on receive |
+| `/peh/crypto.js` | Web Crypto helpers — `initKeys`, `createNewKey`, `exportKeyBundle`, `importKeyBundle`, `clearStoredKey` |
+| `/peh/shtoot-peh.js` | Key setup overlay on first load, encrypt on send, decrypt on receive |
+| `/peh/shtoot-user.js` | Export key / Import key UI in profile sidebar |
 
 ### Message Format
 
@@ -93,16 +94,25 @@ Encrypted messages stored in `text` field as JSON:
 - Encrypted messages: 🔒 lock icon
 - Unencrypted in 1:1 space: ⚠️ red warning badge
 
+### Key Setup (new device)
+
+On first load, if no key exists in IndexedDB, a blocking overlay prompts the user to choose:
+
+- **"This is my first device"** — calls `createNewKey()`, generates and publishes a fresh key pair
+- **"I have Shtoot on another device"** — shows import form (blob + PIN)
+
+No key is ever created silently. `initKeys()` only publishes an existing key; `createNewKey()` is the explicit first-time path.
+
 ### Key Migration (device-to-device)
 
 Keys can be migrated from one device to another via an encrypted export blob + 6-digit PIN.
 
 **Export (old device):** Profile sidebar → "Export key…" → copy the blob and note the PIN
-**Import (new device):** Profile sidebar → "Import key…" → paste blob + enter PIN → page reloads
+**Import (new device):** either via the setup overlay on first load, or Profile sidebar → "Import key…"
 
-The blob is the private key encrypted with AES-GCM, derived from the PIN via PBKDF2 (600k iterations). The private key never touches the server.
+The blob is the private key encrypted with AES-GCM using a key derived from the PIN via PBKDF2 (600k iterations). The private key never touches the server.
 
-> Note: keys generated before this feature was added are non-extractable. "Export key…" will offer to regenerate a new key pair (old encrypted messages become unreadable after regeneration).
+> Note: keys generated before migration support was added are non-extractable. "Export key…" will offer to regenerate a new key pair — old encrypted messages become unreadable after regeneration.
 
 ### Known Limitations (v1)
 - Key loss = message loss (no recovery)
