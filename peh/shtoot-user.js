@@ -6,8 +6,8 @@ class ShtootUser extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.jwt = localStorage.getItem('jwt');
     const payload = this.decodeJwtResponse(this.jwt);
-    this.email = payload.email;
-    this.name = payload.name || this.email;
+    this.userID = payload.email;
+    this.name = payload.name || this.userID;
     this.picture = payload.picture;
     this.isDev = new URLSearchParams(window.location.search).get('dev') === 'true';
     this.apiUrl = this.isDev ? 'http://localhost:4000/graphql' : 'https://api.shtoot.net/graphql';
@@ -118,7 +118,7 @@ class ShtootUser extends HTMLElement {
         ${this.picture ? `<img class="avatar" src="${this._escapeHtml(this.picture)}" alt="avatar">` : '<div class="avatar"></div>'}
         <div class="user-info">
           <span class="user-name">${this._escapeHtml(this.name)}</span>
-          <span class="user-email">${this._escapeHtml(this.email)}</span>
+          <span class="user-email">${this._escapeHtml(this.userID)}</span>
         </div>
       </div>
       <button id="logout">Log Out</button>
@@ -186,7 +186,7 @@ class ShtootUser extends HTMLElement {
   }
 
   async _doExport() {
-    const stored = await getStoredKeys();
+    const stored = await getStoredKeys(this.userID);
     if (!stored) {
       alert('No encryption key found. Send a message first to generate one.');
       return;
@@ -211,8 +211,8 @@ class ShtootUser extends HTMLElement {
   }
 
   async _regenerateKey() {
-    await clearStoredKey();
-    await initKeys(this.email, this.apiUrl);
+    await clearStoredKey(this.userID);
+    await initKeys(this.userID, this.apiUrl);
     alert('New key generated. You can now use "Export key" to migrate to another device.');
   }
 
@@ -232,8 +232,8 @@ class ShtootUser extends HTMLElement {
     btn.textContent = 'Importing…';
 
     try {
-      await importKeyBundle(blob, pin);
-      await initKeys(this.email, this.apiUrl);
+      await importKeyBundle(blob, pin, this.userID);
+      await initKeys(this.userID, this.apiUrl);
       alert('Key imported! The page will reload.');
       window.location.reload();
     } catch (_) {

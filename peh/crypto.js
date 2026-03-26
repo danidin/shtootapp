@@ -1,6 +1,6 @@
 const DB_NAME = 'shtoot-crypto';
 const STORE_NAME = 'keys';
-const KEY_ID = 'keypair';
+const keyId = (userID) => 'keypair-' + userID;
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -49,23 +49,23 @@ const RSA_PARAMS = {
   hash: 'SHA-256',
 };
 
-export async function getStoredKeys() {
+export async function getStoredKeys(userID) {
   const db = await openDb();
-  return dbGet(db, KEY_ID);
+  return dbGet(db, keyId(userID));
 }
 
 // Publishes the existing key to the server. Returns null if no key exists yet.
-export async function initKeys(userEmail, baseApiUrl) {
+export async function initKeys(userID, baseApiUrl) {
   const apiBase = baseApiUrl.replace('/graphql', '');
   const db = await openDb();
-  const stored = await dbGet(db, KEY_ID);
+  const stored = await dbGet(db, keyId(userID));
   if (!stored) return null;
 
   // (Re-)publish public key — server may have restarted and lost in-memory map
   await fetch(`${apiBase}/key`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: userEmail, publicKey: stored.publicKeyB64 }),
+    body: JSON.stringify({ email: userID, publicKey: stored.publicKeyB64 }),
   }).catch(() => {});
 
   return stored;
@@ -73,18 +73,18 @@ export async function initKeys(userEmail, baseApiUrl) {
 
 // Generates a new key pair, stores it, and publishes it. Call only when the user
 // explicitly chooses to start fresh on a new device.
-export async function createNewKey(userEmail, baseApiUrl) {
+export async function createNewKey(userID, baseApiUrl) {
   const apiBase = baseApiUrl.replace('/graphql', '');
   const db = await openDb();
   const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt']);
   const spki = await crypto.subtle.exportKey('spki', keyPair.publicKey);
   const publicKeyB64 = arrayBufferToBase64(spki);
   const stored = { privateKey: keyPair.privateKey, publicKeyB64 };
-  await dbPut(db, KEY_ID, stored);
+  await dbPut(db, keyId(userID), stored);
   await fetch(`${apiBase}/key`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: userEmail, publicKey: publicKeyB64 }),
+    body: JSON.stringify({ email: userID, publicKey: publicKeyB64 }),
   }).catch(() => {});
   return stored;
 }
@@ -133,11 +133,11 @@ export async function encryptForSpace(text, senderEmail, recipientEmail, storedK
   });
 }
 
-export async function clearStoredKey() {
+export async function clearStoredKey(userID) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    const req = tx.objectStore(STORE_NAME).delete(KEY_ID);
+    const req = tx.objectStore(STORE_NAME).delete(keyId(userID));
     req.onsuccess = () => resolve();
     req.onerror = (e) => reject(e.target.error);
   });
@@ -172,7 +172,7 @@ export async function exportKeyBundle(storedKeys) {
   return { blob: btoa(JSON.stringify(bundle)), pin };
 }
 
-export async function importKeyBundle(blob, pin) {
+export async function importKeyBundle(blob, pin, userID) {
   const { salt, iv, ct, pub } = JSON.parse(atob(blob));
   const pinKey = await derivePinKey(pin, base64ToArrayBuffer(salt));
   const pkcs8 = await crypto.subtle.decrypt(
@@ -188,7 +188,7 @@ export async function importKeyBundle(blob, pin) {
   );
   const stored = { privateKey, publicKeyB64: pub };
   const db = await openDb();
-  await dbPut(db, KEY_ID, stored);
+  await dbPut(db, keyId(userID), stored);
   return stored;
 }
 

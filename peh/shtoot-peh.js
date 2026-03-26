@@ -271,7 +271,7 @@ class ShtootPeh extends HTMLElement {
           try {
             const parsed = JSON.parse(shtoot.text);
             if (parsed && parsed.e2e === 1) {
-              const keys = this.cryptoKeys || await getStoredKeys();
+              const keys = this.cryptoKeys || await getStoredKeys(this.userID);
               if (keys) {
                 shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
                 shtoot._encrypted = true;
@@ -306,7 +306,7 @@ class ShtootPeh extends HTMLElement {
     if (!text) return;
     try {
       if (this._is1to1Space(this.space)) {
-        const keys = this.cryptoKeys || await getStoredKeys();
+        const keys = this.cryptoKeys || await getStoredKeys(this.userID);
         if (keys) {
           const recipientEmail = this._getRecipientEmail(this.space) || this.userID;
           text = await encryptForSpace(text, this.userID, recipientEmail, keys, this.apiUrl);
@@ -373,7 +373,7 @@ class ShtootPeh extends HTMLElement {
     btn.textContent = 'Importing…';
 
     try {
-      await importKeyBundle(blob, pin);
+      await importKeyBundle(blob, pin, this.userID);
       this.cryptoKeys = await initKeys(this.userID, this.apiUrl);
       this._hideKeySetup();
     } catch (_) {
