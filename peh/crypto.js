@@ -60,7 +60,7 @@ export async function initKeys(userEmail, baseApiUrl) {
   let stored = await dbGet(db, KEY_ID);
 
   if (!stored) {
-    const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, false, ['encrypt', 'decrypt']);
+    const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt']);
     const spki = await crypto.subtle.exportKey('spki', keyPair.publicKey);
     const publicKeyB64 = arrayBufferToBase64(spki);
     stored = { privateKey: keyPair.privateKey, publicKeyB64 };
@@ -119,6 +119,65 @@ export async function encryptForSpace(text, senderEmail, recipientEmail, storedK
     iv: arrayBufferToBase64(iv.buffer),
     ct: arrayBufferToBase64(ct),
   });
+}
+
+export async function clearStoredKey() {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).delete(KEY_ID);
+    req.onsuccess = () => resolve();
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function derivePinKey(pin, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 600000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+export async function exportKeyBundle(storedKeys) {
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', storedKeys.privateKey);
+  const pin = String(Math.floor(100000 + Math.random() * 900000));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const pinKey = await derivePinKey(pin, salt);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, pinKey, pkcs8);
+  const bundle = {
+    salt: arrayBufferToBase64(salt.buffer),
+    iv: arrayBufferToBase64(iv.buffer),
+    ct: arrayBufferToBase64(ct),
+    pub: storedKeys.publicKeyB64,
+  };
+  return { blob: btoa(JSON.stringify(bundle)), pin };
+}
+
+export async function importKeyBundle(blob, pin) {
+  const { salt, iv, ct, pub } = JSON.parse(atob(blob));
+  const pinKey = await derivePinKey(pin, base64ToArrayBuffer(salt));
+  const pkcs8 = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: base64ToArrayBuffer(iv) },
+    pinKey,
+    base64ToArrayBuffer(ct)
+  );
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8', pkcs8,
+    { name: 'RSA-OAEP', hash: 'SHA-256' },
+    true,
+    ['decrypt']
+  );
+  const stored = { privateKey, publicKeyB64: pub };
+  const db = await openDb();
+  await dbPut(db, KEY_ID, stored);
+  return stored;
 }
 
 export async function decryptMessage(encryptedJson, privateKey) {
