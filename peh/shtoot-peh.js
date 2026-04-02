@@ -105,14 +105,14 @@ class ShtootPeh extends HTMLElement {
 
       <div class="key-setup" id="key-setup">
         <div class="key-setup-card">
-          <h2>Set up encryption</h2>
+          <h2>Set up encryption for ${this.userID} <a href="#" id="setup-switch-account" style="font-size:14px;font-weight:normal">switch account</a></h2>
           <p>Shtoot uses end-to-end encryption for private messages. How would you like to set up this device?</p>
           <div class="choice" id="key-setup-choice">
-            <button class="primary" id="new-key-btn">This is my first device</button>
-            <button class="secondary" id="import-key-btn">I have Shtoot on another device</button>
+            <button class="primary" id="new-key-btn">Create new key (previous private messages will be unreadable)</button>
+            <button class="secondary" id="import-key-btn">Migrate from another device</button>
           </div>
           <div id="key-import-form" style="display:none">
-            <p>Paste the blob from your other device:</p>
+            <p>Export key on your other device and paste the blob:</p>
             <textarea id="setup-blob" placeholder="Paste blob here…"></textarea>
             <input type="text" id="setup-pin" placeholder="PIN" maxlength="6" inputmode="numeric">
             <div class="setup-error" id="setup-error"></div>
@@ -159,6 +159,11 @@ class ShtootPeh extends HTMLElement {
       this.shadowRoot.getElementById('setup-error').textContent = '';
     };
     this.shadowRoot.getElementById('setup-import-btn').onclick = () => this._importKey();
+    this.shadowRoot.getElementById('setup-switch-account').onclick = (e) => {
+      e.preventDefault();
+      localStorage.setItem('jwt', '');
+      window.location = '/peh/login';
+    };
   }
 
   async _registerServiceWorker() {
