@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shtoot</string>
+    <string name="title_activity_main">Shtoot</string>
+    <string name="package_name">net.shtoot.app</string>
+    <string name="custom_url_scheme">net.shtoot.app</string>
+    <!-- Read by @codetrix-studio/capacitor-google-auth at native init time.
+         Must be the **web** OAuth client ID (the same one peh uses in the
+         browser); the Android OAuth client is matched implicitly via package
+         + signing-cert SHA-1 and doesn't get pasted anywhere. -->
+    <string name="server_client_id">569147176090-4t128vkfk1ki84qbf272ghjifbknvaas.apps.googleusercontent.com</string>
+</resources>

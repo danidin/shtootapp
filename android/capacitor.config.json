@@ -1,0 +1,24 @@
+{
+  "appId": "net.shtoot.app",
+  "appName": "Shtoot",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "569147176090-4t128vkfk1ki84qbf272ghjifbknvaas.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#0066cc"
+    }
+  }
+}

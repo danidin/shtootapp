@@ -1,0 +1,15 @@
+node_modules/
+www/
+
+# Capacitor's native Android project keeps build artifacts here
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/.idea/
+android/*.iml
+android/app/*.iml
+
+# OS / editor noise
+.DS_Store

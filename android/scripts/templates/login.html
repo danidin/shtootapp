@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shtoot — Sign in</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      h1 { font-size: 28px; margin-bottom: 8px; }
+      p { color: #555; margin-top: 0; text-align: center; }
+      button {
+        padding: 14px 28px;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        margin-top: 24px;
+        cursor: pointer;
+      }
+      button:disabled { background: #888; }
+      .error { color: #c00; font-size: 14px; margin-top: 12px; min-height: 1em; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <h1>Shtoot</h1>
+    <p>Sign in with your Google account to continue.</p>
+    <button id="signin">Sign in with Google</button>
+    <div class="error" id="error"></div>
+
+    <script type="module">
+      // Capacitor injects its bridge at window.Capacitor; the GoogleAuth plugin
+      // is registered when the app starts. We grab it lazily so this page also
+      // works in a desktop browser for layout testing (button will just error).
+      const errEl = document.getElementById('error');
+      const btn = document.getElementById('signin');
+
+      if (localStorage.getItem('jwt')) {
+        window.location = './index.html';
+      }
+
+      async function getPlugin() {
+        if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+          throw new Error('GoogleAuth plugin unavailable — are you running outside the Android app?');
+        }
+        return window.Capacitor.Plugins.GoogleAuth;
+      }
+
+      btn.onclick = async () => {
+        btn.disabled = true;
+        errEl.textContent = '';
+        console.log('[shtoot-login] sign-in button clicked');
+        try {
+          const GoogleAuth = await getPlugin();
+          console.log('[shtoot-login] plugin resolved, initializing');
+          if (GoogleAuth.initialize) {
+            try {
+              await GoogleAuth.initialize();
+              console.log('[shtoot-login] initialize ok');
+            } catch (initErr) {
+              console.error('[shtoot-login] initialize threw:', initErr && initErr.message || initErr);
+            }
+          }
+          console.log('[shtoot-login] calling signIn');
+          const result = await GoogleAuth.signIn();
+          console.log('[shtoot-login] signIn returned:', JSON.stringify(result).slice(0, 200));
+          const idToken = result && result.authentication && result.authentication.idToken;
+          if (!idToken) throw new Error('No ID token returned from Google');
+          localStorage.setItem('jwt', idToken);
+          window.location = './index.html';
+        } catch (e) {
+          console.error('[shtoot-login] signIn failed:', e && e.message || e, 'code:', e && e.code, 'full:', JSON.stringify(e));
+          btn.disabled = false;
+          errEl.textContent = (e && e.message) || String(e);
+        }
+      };
+    </script>
+  </body>
+</html>
