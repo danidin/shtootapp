@@ -273,17 +273,23 @@ class ShtootPeh extends HTMLElement {
         }
         if (msg.type === 'next' && msg.id === '1' && msg.payload && msg.payload.data && msg.payload.data.shtootAdded) {
           const shtoot = msg.payload.data.shtootAdded;
+          // Push synchronously so array order matches receive order — async
+          // decryption below can finish in a different order than messages arrive.
+          this.shtoots.push(shtoot);
+          let isE2E = false;
           try {
             const parsed = JSON.parse(shtoot.text);
-            if (parsed && parsed.e2e === 1) {
-              const keys = this.cryptoKeys || await getStoredKeys(this.userID);
-              if (keys) {
+            if (parsed && parsed.e2e === 1) isE2E = true;
+          } catch (_) {}
+          if (isE2E) {
+            const keys = this.cryptoKeys || await getStoredKeys(this.userID);
+            if (keys) {
+              try {
                 shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
                 shtoot._encrypted = true;
-              }
+              } catch (_) {}
             }
-          } catch (_) {}
-          this.shtoots.push(shtoot);
+          }
           this._renderShtoots();
           this._notify(shtoot);
         }
