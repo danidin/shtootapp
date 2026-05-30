@@ -37,4 +37,18 @@ export const sendKeyCreatedEvent = async (email: string, publicKey: string) => {
   });
 };
 
+export const sendFcmTokenRegisteredEvent = async (email: string, token: string) => {
+  await producer.send({
+    topic,
+    messages: [{ key: 'fcm-token-registered', value: JSON.stringify({ email, token }) }],
+  });
+};
+
+export const sendFcmTokenRemovedEvent = async (email: string | null, token: string) => {
+  await producer.send({
+    topic,
+    messages: [{ key: 'fcm-token-removed', value: JSON.stringify({ email, token }) }],
+  });
+};
+
 export { producer };

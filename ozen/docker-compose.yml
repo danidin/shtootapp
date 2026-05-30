@@ -10,5 +10,8 @@ services:
       - OZEN_HOST=149.81.7.230
       - OZEN_PORT=4000
       - OZEN_WS_PROTOCOL=wss
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/secrets/firebase-sa.json
+    volumes:
+      - ./shtootapp-firebase-adminsdk-fbsvc-e2602d4006.json:/secrets/firebase-sa.json:ro
     ports:
       - "4000:4000"

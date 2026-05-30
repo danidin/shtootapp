@@ -50,10 +50,12 @@ function copyFile(src, dest, transform) {
 rimraf(OUT);
 fs.mkdirSync(OUT, { recursive: true });
 
-// Copy and rewrite the JS modules + index.html
+// Copy and rewrite the JS modules + index.html. `crypto.js` is intentionally
+// excluded — it's replaced wholesale by templates/native-crypto.js, which
+// routes through the ShtootCrypto Capacitor plugin so the FCM service can
+// share the private key with the WebView.
 const filesToTransform = [
   'index.html',
-  'crypto.js',
   'shtoot-peh.js',
   'shtoot-user.js',
   'shtoot-space-selector.js',
@@ -73,9 +75,13 @@ indexHtml = indexHtml.replace(
 );
 fs.writeFileSync(path.join(OUT, 'index.html'), indexHtml);
 
-// Write the Android-specific login.html and native bridge from templates in scripts/templates.
+// Write the Android-specific login.html, native bridge, and crypto shim from
+// templates in scripts/templates. `native-crypto.js` is copied to `crypto.js`
+// in the output so existing `./crypto.js` imports in shtoot-peh.js and
+// shtoot-user.js resolve to the native-backed implementation unchanged.
 const TEMPLATES = path.join(__dirname, 'templates');
 fs.copyFileSync(path.join(TEMPLATES, 'login.html'), path.join(OUT, 'login.html'));
 fs.copyFileSync(path.join(TEMPLATES, 'native-bridge.js'), path.join(OUT, 'native-bridge.js'));
+fs.copyFileSync(path.join(TEMPLATES, 'native-crypto.js'), path.join(OUT, 'crypto.js'));
 
 console.log('Synced peh -> www/');

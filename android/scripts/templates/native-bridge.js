@@ -15,7 +15,79 @@
  * branch matters here.
  */
 
-const LocalNotifications = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+const LocalNotifications = Plugins.LocalNotifications || null;
+const PushNotifications = Plugins.PushNotifications || null;
+
+// FCM push registration: on launch, ask for permission, register with FCM, then
+// forward the token to ozen so it can target this device. The same WebSocket
+// flow continues to drive in-app updates; FCM only fires when the WebView is
+// suspended or killed and a message arrives.
+if (PushNotifications) {
+  // shtoot-peh.js hardcodes the same URL; ?dev=true uses localhost (only useful
+  // with `cleartext: true` in capacitor.config.json on an emulator).
+  const isDev = new URLSearchParams(window.location.search).get('dev') === 'true';
+  const apiUrl = isDev ? 'http://localhost:4000/graphql' : 'https://api.shtoot.net/graphql';
+
+  const sendTokenToOzen = async (token) => {
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) return;
+    try {
+      await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+          query: 'mutation($token: String!) { registerFcmToken(token: $token) }',
+          variables: { token },
+        }),
+      });
+    } catch (_) {}
+  };
+
+  PushNotifications.addListener('registration', (t) => {
+    if (t && t.value) sendTokenToOzen(t.value);
+  });
+  PushNotifications.addListener('registrationError', (err) => {
+    console.error('PushNotifications registration error', err);
+  });
+  // Foreground data-only messages are also delivered to ShtootMessagingService
+  // (which suppresses notify when in foreground); the WebSocket handles UI.
+  PushNotifications.addListener('pushNotificationReceived', () => {});
+  PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+    const shtootId = action && action.notification && action.notification.data && action.notification.data.shtootId;
+    if (shtootId) {
+      try { localStorage.setItem('pendingShtootId', shtootId); } catch (_) {}
+    }
+  });
+
+  const registerPush = async () => {
+    try {
+      let perm = await PushNotifications.checkPermissions();
+      if (perm.receive !== 'granted') {
+        perm = await PushNotifications.requestPermissions();
+      }
+      if (perm.receive === 'granted') {
+        await PushNotifications.register();
+      }
+    } catch (e) {
+      console.error('PushNotifications setup failed', e);
+    }
+  };
+
+  // Defer until JWT is present (login completed). Polling is cheap and avoids
+  // a tight coupling with the login page's success path.
+  const waitForJwt = () => {
+    if (localStorage.getItem('jwt')) {
+      registerPush();
+    } else {
+      setTimeout(waitForJwt, 500);
+    }
+  };
+  waitForJwt();
+}
 
 if (LocalNotifications) {
   let permissionState = 'default';

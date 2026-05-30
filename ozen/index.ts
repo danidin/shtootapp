@@ -9,6 +9,7 @@ import { resolvers } from './resolvers.js';
 import { startKafkaConsumer, publicKeys } from './partzoof-consumer.js';
 import { startKafkaProducer, sendKeyCreatedEvent } from './partzoof-producer.js';
 import { decodeJwtResponse } from './auth.js';
+import { initFcm } from './fcm.js';
 
 const PROTOCOL = process.env.OZEN_PROTOCOL;
 const WS_PROTOCOL = process.env.OZEN_WS_PROTOCOL;
@@ -16,6 +17,7 @@ const HOSTNAME = process.env.OZEN_HOST;
 const PORT = process.env.OZEN_PORT;
 
 const startServer = async () => {
+  initFcm();
   await Promise.all([
     startKafkaConsumer(),
     startKafkaProducer(),

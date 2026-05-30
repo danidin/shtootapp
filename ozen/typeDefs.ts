@@ -33,6 +33,8 @@ export const typeDefs = gql`
     createUser(email: String!, displayName: String!): User!
     createShtoot(userID: ID!, text: String!, space: String): Shtoot!
     createService(pathToContract: String!): Service!
+    registerFcmToken(token: String!): Boolean
+    unregisterFcmToken(token: String!): Boolean
   }
 
   type Subscription {

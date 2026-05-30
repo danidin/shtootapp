@@ -120,5 +120,50 @@ available in Android WebView 60+, which covers every supported device.
   security config; don't ship that build.
 - **WebSocket disconnects on background**: Android will suspend the WebView
   when the app is backgrounded for a while. Reconnect logic in
-  `shtoot-peh.js` handles this on resume, but missed messages while suspended
-  won't trigger a notification — that needs FCM, which is out of scope here.
+  `shtoot-peh.js` handles this on resume. Messages that arrive while the
+  WebView is suspended (or the process is killed) are delivered via FCM —
+  see the "Push notifications (FCM)" section below.
+
+## Push notifications (FCM)
+
+When the app is backgrounded or killed, ozen pushes new shtoots to the
+device over FCM. The native `ShtootMessagingService` (in
+`android/android/app/src/main/java/net/shtoot/app/fcm/`) wakes on the data
+message, decrypts E2E 1:1 envelopes locally via the same RSA private key the
+WebView uses, and posts a system notification with real content. When the
+app is in the foreground, the FCM handler suppresses the notification and
+lets the existing WebSocket flow update the UI.
+
+### Native key storage
+
+The RSA private key lives in `EncryptedSharedPreferences` (master key in
+Android Keystore) instead of IndexedDB. Both the WebView (via the
+`ShtootCrypto` Capacitor plugin) and the FCM service read from the same
+store. Keys are scoped per email like the web version.
+
+Existing users upgrading from a pre-FCM build need to re-import their key:
+the IndexedDB key is non-extractable and can't migrate automatically. Use
+"Export key…" on another device and import via the setup overlay on Android,
+or generate a new key (older encrypted messages become unreadable).
+
+### One-time Firebase setup
+
+1. Create a Firebase project at <https://console.firebase.google.com>.
+2. Add an Android app: package `net.shtoot.app`. Register the debug SHA-1
+   (and release SHA-1, if any) — see "Getting the debug SHA-1" above.
+3. Download `google-services.json` → save to
+   `android/android/app/google-services.json`. `app/build.gradle` already
+   applies the `com.google.gms.google-services` plugin conditionally if the
+   file exists.
+4. Project Settings → Service accounts → "Generate new private key". Save
+   the JSON somewhere ozen can read it. Set
+   `FIREBASE_SERVICE_ACCOUNT_PATH=/abs/path/to/sa.json` in ozen's
+   environment, and add the file to ozen's `.gitignore`.
+5. Enable the **Cloud Messaging API** for the project in Google Cloud
+   Console.
+
+Without `google-services.json` the build still succeeds (with a warning
+from `app/build.gradle`) and the FCM plugin is inert. Without
+`FIREBASE_SERVICE_ACCOUNT_PATH` on ozen, `firebase-admin` is skipped and
+pushes are silently dropped — the in-app WebSocket flow still works for
+foreground users.

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "569147176090",
+    "project_id": "shtootapp",
+    "storage_bucket": "shtootapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:569147176090:android:2d60c85b1f18c2a74edb23",
+        "android_client_info": {
+          "package_name": "net.shtoot.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "569147176090-4t128vkfk1ki84qbf272ghjifbknvaas.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdYFijWlnu6hiGO9NYeaf0IppSy5Ue9tk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "569147176090-4t128vkfk1ki84qbf272ghjifbknvaas.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

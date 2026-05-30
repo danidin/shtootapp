@@ -118,6 +118,10 @@ The blob is the private key encrypted with AES-GCM using a key derived from the 
 
 Keys are scoped by `userID` (email) in IndexedDB — each account gets its own entry (`keypair-<userID>`). Switching Google accounts on the same device will correctly find each user's own key, or show the setup overlay if they haven't set one up yet.
 
+### Android storage
+
+The Android wrapper replaces `peh/crypto.js` with `android/scripts/templates/native-crypto.js`, which routes every operation through the `ShtootCrypto` Capacitor plugin. Private keys live in `EncryptedSharedPreferences` (master key in Android Keystore) instead of IndexedDB, so the native `FirebaseMessagingService` can decrypt incoming E2E 1:1 messages and post system notifications even when the WebView is suspended or the process is killed. The `key-<userID>-priv` / `key-<userID>-pub` SharedPreferences entries are the on-disk counterpart of the web's `keypair-<userID>` IndexedDB row.
+
 ### Known Limitations (v1)
 - Key loss = message loss (no recovery)
 - Single device per user (no multi-device sync)

@@ -1,7 +1,11 @@
 import EventEmitter from 'events';
 import { GraphQLError } from 'graphql';
 import { User, Shtoot, Service } from './entities.js';
-import { sendShtootSaidEvent } from './partzoof-producer.js';
+import {
+  sendShtootSaidEvent,
+  sendFcmTokenRegisteredEvent,
+  sendFcmTokenRemovedEvent,
+} from './partzoof-producer.js';
 
 export const eventBus = new EventEmitter();
 export const SHTOOT_ADDED = 'SHTOOT_ADDED';
@@ -47,6 +51,16 @@ export const resolvers = {
       const service = { ID: generateID(), pathToContract };
       services.push(service);
       return service;
+    },
+    registerFcmToken: async (_: any, { token }: { token: string }, context: { user?: { email: string } }) => {
+      if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
+      await sendFcmTokenRegisteredEvent(context.user.email, token);
+      return true;
+    },
+    unregisterFcmToken: async (_: any, { token }: { token: string }, context: { user?: { email: string } }) => {
+      if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
+      await sendFcmTokenRemovedEvent(context.user.email, token);
+      return true;
     },
   },
   Subscription: {
