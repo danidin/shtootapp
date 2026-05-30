@@ -11,8 +11,17 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "ShtootCrypto")
 public class ShtootCryptoPlugin extends Plugin {
 
+    private volatile CryptoStore storeInstance;
+
     private CryptoStore store() throws Exception {
-        return new CryptoStore(getContext());
+        CryptoStore s = storeInstance;
+        if (s != null) return s;
+        synchronized (this) {
+            if (storeInstance == null) {
+                storeInstance = new CryptoStore(getContext());
+            }
+            return storeInstance;
+        }
     }
 
     private static String requireUserID(PluginCall call) {

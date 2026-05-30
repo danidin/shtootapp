@@ -26,6 +26,12 @@ const ShtootCrypto = Plugins && Plugins.ShtootCrypto;
 // createNewKey / importKeyBundle.
 let activeUserID = null;
 
+// Per-userID cache of the sentinel object (or null if we've checked and there
+// is no key). shtoot-peh.js calls getStoredKeys() once per incoming message
+// while replaying history, which would otherwise translate to one plugin
+// round-trip + EncryptedSharedPreferences hit per shtoot.
+const keyCache = new Map();
+
 function apiBaseFrom(url) {
   return url.replace('/graphql', '');
 }
@@ -50,28 +56,35 @@ function sentinel(userID, publicKeyB64) {
 
 export async function getStoredKeys(userID) {
   if (!ShtootCrypto) return null;
+  if (keyCache.has(userID)) return keyCache.get(userID);
   const res = await ShtootCrypto.hasKey({ userID });
-  if (!res || !res.has) return null;
+  if (!res || !res.has) {
+    keyCache.set(userID, null);
+    return null;
+  }
   activeUserID = userID;
-  return sentinel(userID, res.publicKeyB64);
+  const s = sentinel(userID, res.publicKeyB64);
+  keyCache.set(userID, s);
+  return s;
 }
 
 export async function initKeys(userID, baseApiUrl) {
   if (!ShtootCrypto) return null;
   const apiBase = apiBaseFrom(baseApiUrl);
-  const res = await ShtootCrypto.hasKey({ userID });
-  if (!res || !res.has) return null;
-  activeUserID = userID;
-  await publishPublicKey(userID, apiBase, res.publicKeyB64);
-  return sentinel(userID, res.publicKeyB64);
+  const stored = await getStoredKeys(userID);
+  if (!stored) return null;
+  await publishPublicKey(userID, apiBase, stored.publicKeyB64);
+  return stored;
 }
 
 export async function createNewKey(userID, baseApiUrl) {
   const apiBase = apiBaseFrom(baseApiUrl);
   const { publicKeyB64 } = await ShtootCrypto.createKey({ userID });
   activeUserID = userID;
+  const s = sentinel(userID, publicKeyB64);
+  keyCache.set(userID, s);
   await publishPublicKey(userID, apiBase, publicKeyB64);
-  return sentinel(userID, publicKeyB64);
+  return s;
 }
 
 export async function encryptForSpace(text, senderEmail, recipientEmail, storedKeys, baseApiUrl) {
@@ -99,6 +112,7 @@ export async function decryptMessage(encryptedJson, _privateKey) {
 export async function clearStoredKey(userID) {
   if (!ShtootCrypto) return;
   await ShtootCrypto.clearKey({ userID });
+  keyCache.delete(userID);
   if (activeUserID === userID) activeUserID = null;
 }
 
@@ -112,5 +126,7 @@ export async function exportKeyBundle(storedKeys) {
 export async function importKeyBundle(blob, pin, userID) {
   const { publicKeyB64 } = await ShtootCrypto.importBundle({ userID, blob, pin });
   activeUserID = userID;
-  return sentinel(userID, publicKeyB64);
+  const s = sentinel(userID, publicKeyB64);
+  keyCache.set(userID, s);
+  return s;
 }
