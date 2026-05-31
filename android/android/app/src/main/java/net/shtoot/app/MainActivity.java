@@ -1,5 +1,6 @@
 package net.shtoot.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
@@ -20,6 +21,20 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ShtootBridgePlugin.class);
         super.onCreate(savedInstanceState);
         ShtootMessagingService.ensureChannel(this);
+        capturePendingSpace(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        capturePendingSpace(intent);
+    }
+
+    private void capturePendingSpace(Intent intent) {
+        if (intent == null) return;
+        String space = intent.getStringExtra("space");
+        if (space != null) ShtootBridgePlugin.writePendingSpace(this, space);
     }
 
     @Override

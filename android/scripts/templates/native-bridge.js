@@ -26,14 +26,35 @@ const ShtootBridge = Plugins.ShtootBridge || null;
 // ShtootMessagingService can suppress notifications for that space while in
 // foreground but still surface other-space messages. Re-asserted on
 // visibilitychange in case the user returned via the launcher.
+//
+// On the way back, also drain any pending-space that the FCM service stashed
+// when the user tapped a notification — navigate there if it's a different
+// space than the one we're currently on.
 if (ShtootBridge) {
   const reportSpace = () => {
     const space = new URLSearchParams(window.location.search).get('space') || '';
     ShtootBridge.setCurrentSpace({ space }).catch(() => {});
   };
+  const consumePending = async () => {
+    try {
+      const { space } = await ShtootBridge.consumePendingSpace();
+      // Server never sends FCM for the public space, so an empty pending-space
+      // means "nothing was stashed" — not "navigate to public".
+      if (!space) return;
+      const current = new URLSearchParams(window.location.search).get('space') || '';
+      if (space === current) return;
+      const params = new URLSearchParams(window.location.search);
+      params.set('space', space);
+      window.location.search = params.toString();
+    } catch (_) {}
+  };
   reportSpace();
+  consumePending();
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') reportSpace();
+    if (document.visibilityState === 'visible') {
+      reportSpace();
+      consumePending();
+    }
   });
 }
 
