@@ -140,6 +140,14 @@ class ShtootPeh extends HTMLElement {
     this._registerServiceWorker();
     this._requestNotificationPermission();
     this._connectWs();
+    this._visibilityHandler = () => {
+      if (document.visibilityState === 'visible'
+          && (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING)) {
+        this._reconnectDelay = 0;
+        this._connectWs();
+      }
+    };
+    document.addEventListener('visibilitychange', this._visibilityHandler);
     initKeys(this.userID, this.apiUrl).then(keys => {
       if (keys) {
         this.cryptoKeys = keys;
@@ -200,6 +208,13 @@ class ShtootPeh extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+    }
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
     if (this.ws) this.ws.close();
   }
 
@@ -251,12 +266,20 @@ class ShtootPeh extends HTMLElement {
   }
 
   _connectWs() {
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this.subscribed = false;
     this.ws = new WebSocket(this.wsUrl, 'graphql-transport-ws');
     this.ws.onopen = () => {
+      this._reconnectDelay = 0;
+      this.errorEl.textContent = '';
       this.ws.send(JSON.stringify({
         type: 'connection_init',
         payload: { Authorization: `Bearer ${this.jwt}` }
       }));
+      this._refetchShtoots();
     };
     this.ws.onmessage = async (event) => {
       try {
@@ -276,20 +299,7 @@ class ShtootPeh extends HTMLElement {
           // Push synchronously so array order matches receive order — async
           // decryption below can finish in a different order than messages arrive.
           this.shtoots.push(shtoot);
-          let isE2E = false;
-          try {
-            const parsed = JSON.parse(shtoot.text);
-            if (parsed && parsed.e2e === 1) isE2E = true;
-          } catch (_) {}
-          if (isE2E) {
-            const keys = this.cryptoKeys || await getStoredKeys(this.userID);
-            if (keys) {
-              try {
-                shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
-                shtoot._encrypted = true;
-              } catch (_) {}
-            }
-          }
+          await this._decryptIfE2E(shtoot);
           this._renderShtoots();
           this._notify(shtoot);
         }
@@ -308,7 +318,54 @@ class ShtootPeh extends HTMLElement {
     };
     this.ws.onclose = (e) => {
       this.errorEl.textContent = 'WebSocket closed: ' + (e.reason || e.code);
+      this._scheduleReconnect();
     };
+  }
+
+  async _decryptIfE2E(shtoot) {
+    let isE2E = false;
+    try {
+      const parsed = JSON.parse(shtoot.text);
+      if (parsed && parsed.e2e === 1) isE2E = true;
+    } catch (_) {}
+    if (!isE2E) return;
+    const keys = this.cryptoKeys || await getStoredKeys(this.userID);
+    if (!keys) return;
+    try {
+      shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
+      shtoot._encrypted = true;
+    } catch (_) {}
+  }
+
+  async _refetchShtoots() {
+    try {
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.jwt}`,
+        },
+        body: JSON.stringify({
+          query: `query { shtoots { ID userID text timestamp space } }`,
+        }),
+      });
+      const json = await res.json();
+      const fetched = json && json.data && json.data.shtoots;
+      if (!Array.isArray(fetched)) return;
+      for (const shtoot of fetched) await this._decryptIfE2E(shtoot);
+      this.shtoots = fetched;
+      this._renderShtoots();
+    } catch (_) {}
+  }
+
+  _scheduleReconnect() {
+    if (this._reconnectTimer) return;
+    // Exponential backoff capped at 10s. Reset to 0 on successful onopen.
+    this._reconnectDelay = Math.min((this._reconnectDelay || 500) * 2, 10000);
+    this._reconnectTimer = setTimeout(() => {
+      this._reconnectTimer = null;
+      this._connectWs();
+    }, this._reconnectDelay);
   }
 
   async _createShtoot() {
