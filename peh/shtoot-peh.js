@@ -272,6 +272,10 @@ class ShtootPeh extends HTMLElement {
       this._reconnectTimer = null;
     }
     this.subscribed = false;
+    // Subscription replays the full backlog on every (re)connect (see
+    // ozen/resolvers.ts shtootAdded.subscribe), so clear and let it rebuild.
+    this.shtoots = [];
+    this._renderShtoots();
     this.ws = new WebSocket(this.wsUrl, 'graphql-transport-ws');
     this.ws.onopen = () => {
       this._reconnectDelay = 0;
@@ -280,7 +284,6 @@ class ShtootPeh extends HTMLElement {
         type: 'connection_init',
         payload: { Authorization: `Bearer ${this.jwt}` }
       }));
-      this._refetchShtoots();
     };
     this.ws.onmessage = async (event) => {
       try {
@@ -335,18 +338,6 @@ class ShtootPeh extends HTMLElement {
     try {
       shtoot.text = await decryptMessage(shtoot.text, keys.privateKey);
       shtoot._encrypted = true;
-    } catch (_) {}
-  }
-
-  async _refetchShtoots() {
-    try {
-      const data = await gql(this.apiUrl, this.jwt,
-        `query { shtoots { ID userID text timestamp space } }`);
-      const fetched = data && data.shtoots;
-      if (!Array.isArray(fetched)) return;
-      for (const shtoot of fetched) await this._decryptIfE2E(shtoot);
-      this.shtoots = fetched;
-      this._renderShtoots();
     } catch (_) {}
   }
 
