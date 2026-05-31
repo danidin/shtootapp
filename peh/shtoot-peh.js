@@ -1,4 +1,5 @@
 import { initKeys, createNewKey, importKeyBundle, encryptForSpace, decryptMessage, getStoredKeys } from './crypto.js';
+import { gql } from './gql.js';
 
 class ShtootPeh extends HTMLElement {
   constructor() {
@@ -339,18 +340,9 @@ class ShtootPeh extends HTMLElement {
 
   async _refetchShtoots() {
     try {
-      const res = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.jwt}`,
-        },
-        body: JSON.stringify({
-          query: `query { shtoots { ID userID text timestamp space } }`,
-        }),
-      });
-      const json = await res.json();
-      const fetched = json && json.data && json.data.shtoots;
+      const data = await gql(this.apiUrl, this.jwt,
+        `query { shtoots { ID userID text timestamp space } }`);
+      const fetched = data && data.shtoots;
       if (!Array.isArray(fetched)) return;
       for (const shtoot of fetched) await this._decryptIfE2E(shtoot);
       this.shtoots = fetched;
@@ -380,27 +372,14 @@ class ShtootPeh extends HTMLElement {
           text = await encryptForSpace(text, this.userID, recipientEmail, keys, this.apiUrl);
         }
       }
-      const res = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.jwt}`
-        },
-        body: JSON.stringify({
-          query: `mutation($userID: ID!, $text: String!, $space: String) {
-            createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
-          }`,
-          variables: { userID: this.userID, text, space: this.space || '' },
-        }),
-      });
-      const json = await res.json();
-      if (json.errors) {
-        this.errorEl.textContent = json.errors[0].message;
-      } else {
-        this.textarea.value = '';
-      }
+      await gql(this.apiUrl, this.jwt,
+        `mutation($userID: ID!, $text: String!, $space: String) {
+          createShtoot(userID: $userID, text: $text, space: $space) { ID userID text timestamp }
+        }`,
+        { userID: this.userID, text, space: this.space || '' });
+      this.textarea.value = '';
     } catch (err) {
-      this.errorEl.textContent = 'Network error: ' + err;
+      this.errorEl.textContent = err.message || String(err);
     }
   }
 

@@ -15,6 +15,8 @@
  * branch matters here.
  */
 
+import { gql } from './gql.js';
+
 const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
 const LocalNotifications = Plugins.LocalNotifications || null;
 const PushNotifications = Plugins.PushNotifications || null;
@@ -49,17 +51,9 @@ if (PushNotifications) {
     const jwt = localStorage.getItem('jwt');
     if (!jwt) return;
     try {
-      await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${jwt}`,
-        },
-        body: JSON.stringify({
-          query: 'mutation($token: String!) { registerFcmToken(token: $token) }',
-          variables: { token },
-        }),
-      });
+      await gql(apiUrl, jwt,
+        'mutation($token: String!) { registerFcmToken(token: $token) }',
+        { token });
     } catch (_) {}
   };
 

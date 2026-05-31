@@ -60,6 +60,7 @@ const filesToTransform = [
   'shtoot-user.js',
   'shtoot-space-selector.js',
   'shtoot-add-contact.js',
+  'gql.js',
 ];
 
 for (const file of filesToTransform) {
