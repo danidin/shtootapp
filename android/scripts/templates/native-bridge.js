@@ -18,6 +18,22 @@
 const Plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
 const LocalNotifications = Plugins.LocalNotifications || null;
 const PushNotifications = Plugins.PushNotifications || null;
+const ShtootBridge = Plugins.ShtootBridge || null;
+
+// Tell native which space the user is currently looking at, so
+// ShtootMessagingService can suppress notifications for that space while in
+// foreground but still surface other-space messages. Re-asserted on
+// visibilitychange in case the user returned via the launcher.
+if (ShtootBridge) {
+  const reportSpace = () => {
+    const space = new URLSearchParams(window.location.search).get('space') || '';
+    ShtootBridge.setCurrentSpace({ space }).catch(() => {});
+  };
+  reportSpace();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') reportSpace();
+  });
+}
 
 // FCM push registration: on launch, ask for permission, register with FCM, then
 // forward the token to ozen so it can target this device. The same WebSocket
@@ -91,7 +107,6 @@ if (PushNotifications) {
 
 if (LocalNotifications) {
   let permissionState = 'default';
-  let nextId = 1;
 
   async function ensurePermission() {
     try {
@@ -109,18 +124,11 @@ if (LocalNotifications) {
     }
   }
 
-  function ShtootNotification(title, options) {
-    options = options || {};
-    LocalNotifications.schedule({
-      notifications: [{
-        id: nextId++,
-        title: String(title || 'Shtoot'),
-        body: String(options.body || ''),
-        // Use the tag (Shtoot ID) as extra so duplicates don't pile up — schedule with
-        // the same numeric id when present so Android replaces an existing one.
-        extra: { tag: options.tag || null },
-      }],
-    }).catch(() => {});
+  function ShtootNotification(_title, _options) {
+    // No-op on Android: native ShtootMessagingService is the sole notification
+    // source (it knows the current space and suppresses correctly). Leaving the
+    // shim in place — including permission machinery below — so peh's existing
+    // `new Notification(...)` calls don't throw.
   }
 
   Object.defineProperty(ShtootNotification, 'permission', {

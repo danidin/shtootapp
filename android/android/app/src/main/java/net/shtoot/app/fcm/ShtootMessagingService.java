@@ -11,14 +11,13 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.ProcessLifecycleOwner;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import net.shtoot.app.MainActivity;
 import net.shtoot.app.R;
+import net.shtoot.app.bridgeplugin.ShtootBridgePlugin;
 import net.shtoot.app.cryptoplugin.CryptoStore;
 
 import java.util.Map;
@@ -35,8 +34,10 @@ public class ShtootMessagingService extends FirebaseMessagingService {
         if (data == null || data.isEmpty()) return;
         if (!"shtoot".equals(data.get("type"))) return;
 
-        if (isAppInForeground()) {
-            // The WebView is alive and the WebSocket will deliver this; avoid double-notify.
+        String space = data.get("space");
+        if (MainActivity.isForeground && spacesMatch(space, ShtootBridgePlugin.readCurrentSpace(this))) {
+            // The user is looking at this exact space; the WebSocket-driven UI
+            // already shows the message. Other-space messages still notify.
             return;
         }
 
@@ -121,12 +122,9 @@ public class ShtootMessagingService extends FirebaseMessagingService {
         nm.createNotificationChannel(channel);
     }
 
-    private static boolean isAppInForeground() {
-        try {
-            return ProcessLifecycleOwner.get().getLifecycle().getCurrentState()
-                    .isAtLeast(Lifecycle.State.STARTED);
-        } catch (Exception e) {
-            return false;
-        }
+    private static boolean spacesMatch(String fcmSpace, String currentSpace) {
+        String a = fcmSpace == null ? "" : fcmSpace;
+        String b = currentSpace == null ? "" : currentSpace;
+        return a.equals(b);
     }
 }
