@@ -135,7 +135,7 @@ deploy_ozen() {
   create_session "$OZEN_IP" "ozen"
   open_tunnel "$SESSION_ID" "$OZEN_IP"
 
-  ssh_vm "mkdir -p ~/ozen"
+  ssh_vm "rm -rf ~/ozen && mkdir -p ~/ozen"
   tar -czf - -C "$SCRIPT_DIR/ozen" \
     --exclude=node_modules \
     --exclude='.git' \
