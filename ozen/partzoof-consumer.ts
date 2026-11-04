@@ -36,7 +36,7 @@ const removeFcmToken = (email: string | null, token: string) => {
   for (const set of fcmTokens.values()) set.delete(token);
 };
 
-const pushShtootToRecipients = async (shtoot: Shtoot) => {
+export const pushShtootToRecipients = async (shtoot: Shtoot) => {
   if (!isFcmReady() || !shtoot.space) return;
   const members = shtoot.space.split(',').map(s => s.trim()).filter(Boolean);
   const recipients = members.filter(m => m !== shtoot.userID);
@@ -118,9 +118,6 @@ export const startKafkaConsumer = async () => {
           const stamped = { ...shtoot, timestamp };
           shtoots.push(stamped);
           eventBus.emit(SHTOOT_ADDED, stamped);
-          pushShtootToRecipients(stamped).catch(err => {
-            console.error('🦻 FCM push failed:', err);
-          });
         }
       } catch (err) {
         console.error('[Kafka] Failed to parse shtoot:', err, valueStr);

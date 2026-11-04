@@ -6,6 +6,7 @@ import {
   sendFcmTokenRegisteredEvent,
   sendFcmTokenRemovedEvent,
 } from './partzoof-producer.js';
+import { pushShtootToRecipients } from './partzoof-consumer.js';
 
 export const eventBus = new EventEmitter();
 export const SHTOOT_ADDED = 'SHTOOT_ADDED';
@@ -45,6 +46,9 @@ export const resolvers = {
       }
       const shtoot: Shtoot = { ID: generateID(), userID, text, timestamp: 0, space: space || '' };
       await sendShtootSaidEvent(shtoot);
+      pushShtootToRecipients(shtoot).catch(err => {
+        console.error('🦻 FCM push failed:', err);
+      });
       return shtoot;
     },
     createService: (_: any, { pathToContract }: { pathToContract: string }) => {
