@@ -4,6 +4,7 @@ services:
     build:
       context: .
     container_name: ozen
+    restart: unless-stopped
     environment:
       - KAFKA_BROKER=10.0.1.13:9092
       - OZEN_PROTOCOL=https
