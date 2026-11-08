@@ -50,6 +50,8 @@ if (ShtootBridge) {
   };
   reportSpace();
   consumePending();
+  // Fired by MainActivity.onNewIntent on notification tap.
+  document.addEventListener('shtootPendingSpace', consumePending);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       reportSpace();

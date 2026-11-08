@@ -29,6 +29,9 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         capturePendingSpace(intent);
+        // The WebView may already be visible (tap on another space's notification
+        // while in foreground), so no visibilitychange will fire — nudge JS directly.
+        if (bridge != null) bridge.triggerDocumentJSEvent("shtootPendingSpace");
     }
 
     private void capturePendingSpace(Intent intent) {
